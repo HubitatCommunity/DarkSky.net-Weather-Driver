@@ -600,22 +600,20 @@ def initialize() {
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
 		} else {
 			pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours").replace(" ", "")
-			if (extSource.toInteger() == 2) {
-				if(pollIntervalForecast=='2Minutes'){
-					schedule("${dsseconds} 1/2 * * * ? *", pollDS)
-				}else if(pollIntervalForecast=='5Minutes'){
-    				schedule("${dsseconds} 2/5 * * * ? *", pollDS)                
-				}else if(pollIntervalForecast=='10Minutes'){
-					schedule("${dsseconds} 3/10 * * * ? *", pollDS)                
-				}else if(pollIntervalForecast=='15Minutes'){
-					schedule("${dsseconds} 4/15 * * * ? *", pollDS)                
-				}else if(pollIntervalForecast=='30Minutes'){
-					schedule("${dsseconds} 5/30 * * * ? *", pollDS)                
-				}else if(pollIntervalForecast=='1Hour'){
-					schedule("${dsseconds} 6 * * * ? *", pollDS)                
-				}else if(pollIntervalForecast=='3Hours'){
-					schedule("${dsseconds} 7 0/3 * * ? *", pollDS)                
-				}
+            if(pollIntervalForecast=='2Minutes'){
+                schedule("${dsseconds} 1/2 * * * ? *", pollDS)
+            }else if(pollIntervalForecast=='5Minutes'){
+                schedule("${dsseconds} 2/5 * * * ? *", pollDS)                
+            }else if(pollIntervalForecast=='10Minutes'){
+                schedule("${dsseconds} 3/10 * * * ? *", pollDS)                
+            }else if(pollIntervalForecast=='15Minutes'){
+                schedule("${dsseconds} 4/15 * * * ? *", pollDS)                
+            }else if(pollIntervalForecast=='30Minutes'){
+                schedule("${dsseconds} 5/30 * * * ? *", pollDS)                
+            }else if(pollIntervalForecast=='1Hour'){
+                schedule("${dsseconds} 6 * * * ? *", pollDS)                
+            }else if(pollIntervalForecast=='3Hours'){
+                schedule("${dsseconds} 7 0/3 * * ? *", pollDS)                
 			}
 		}
 	}else{
