@@ -419,9 +419,9 @@ def doPollDS() {
     }
 	def (lux, bwn) = estimateLux(getDataValue("condition_code"), getDataValue("cloud"))
 	updateDataValue("bwn", bwn)
-	updateDataValue("illuminance", lux.toString())
-	updateDataValue("illuminated", String.format("%,4d", lux).toString())
-	updateDataValue("ultravioletIndex", ds.currently.uvIndex.toBigDecimal().toString())
+    updateDataValue("illuminance", !lux ? "0" : lux.toString())
+    updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
+    updateDataValue("ultravioletIndex", ds.currently.uvIndex.toBigDecimal().toString())
 	updateDataValue("feelsLike", (isFahrenheit ? (Math.round(ds.currently.apparentTemperature.toBigDecimal() * 10) / 10) : (Math.round((ds.currently.apparentTemperature.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
 // >>>>>>>>>> End Setup Forecast Variables <<<<<<<<<<
 
