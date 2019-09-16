@@ -39,7 +39,7 @@ The way the 'optional' attributes work:
    in dashboards.
  - Once an attribute has been selected it too will show under 'Current States' and be available in dashboards.
    <*** HOWEVER ***> If you ever de-select the optional attribute, it will still show under 'Current States' 
-   and will still show as an attribute for dashboards **BUT IT'S DATA WEILL NO LONGER BE REFRESHED WITH DATA
+   and will still show as an attribute for dashboards **BUT IT'S DATA WILL NO LONGER BE REFRESHED WITH DATA
    POLLS**.  This means what is shown on the 'Current States' and dashboard tiles for de-selected attributes
    may not be current valid data.
  - To my knowledge, the only way to remove the de-selected attribute from 'Current States' and not show it as
