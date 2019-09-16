@@ -623,23 +623,21 @@ def initialize() {
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
 		} else {
 			pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours").replace(" ", "")
-			if (extSource.toInteger() == 2) {
-				if(pollIntervalForecastnight=='2Minutes'){
-					schedule("${dsseconds} 1/2 * * * ? *", pollDS)
-				}else if(pollIntervalForecastnight=='5Minutes'){
-				    schedule("${dsseconds} 2/5 * * * ? *", pollDS)                
-				}else if(pollIntervalForecastnight=='10Minutes'){
-					schedule("${dsseconds} 3/10 * * * ? *", pollDS)                
-				}else if(pollIntervalForecastnight=='15Minutes'){
-					schedule("${dsseconds} 4/15 * * * ? *", pollDS)                
-				}else if(pollIntervalForecastnight=='30Minutes'){
-					schedule("${dsseconds} 5/30 * * * ? *", pollDS)                
-				}else if(pollIntervalForecastnight=='1Hour'){
-					schedule("${dsseconds} 6 * * * ? *", pollDS)                
-				}else if(pollIntervalForecastnight=='3Hours'){
-					schedule("${dsseconds} 7 0/3 * * ? *", pollDS)                
-				}
-			}
+            if(pollIntervalForecastnight=='2Minutes'){
+                schedule("${dsseconds} 1/2 * * * ? *", pollDS)
+            }else if(pollIntervalForecastnight=='5Minutes'){
+                schedule("${dsseconds} 2/5 * * * ? *", pollDS)                
+            }else if(pollIntervalForecastnight=='10Minutes'){
+                schedule("${dsseconds} 3/10 * * * ? *", pollDS)                
+            }else if(pollIntervalForecastnight=='15Minutes'){
+                schedule("${dsseconds} 4/15 * * * ? *", pollDS)                
+            }else if(pollIntervalForecastnight=='30Minutes'){
+                schedule("${dsseconds} 5/30 * * * ? *", pollDS)                
+            }else if(pollIntervalForecastnight=='1Hour'){
+                schedule("${dsseconds} 6 * * * ? *", pollDS)                
+            }else if(pollIntervalForecastnight=='3Hours'){
+                schedule("${dsseconds} 7 0/3 * * ? *", pollDS)                
+            }
 		}
 	}
 	updateDataValue("is_lightOld", getDataValue("is_light"))
