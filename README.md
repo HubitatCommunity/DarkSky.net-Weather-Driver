@@ -1,6 +1,9 @@
 # DarkSky.net-Weather-Driver
 Driver to use the DarkSky.net weather API data
 
+Hubitat Community Forum discussion is here:
+https://community.hubitat.com/t/release-darksky-net-weather-driver-no-pws-required/22699
+
    DarkSky.net Weather Driver
    Copyright 2019 @Matthew (Scottma61)
  
