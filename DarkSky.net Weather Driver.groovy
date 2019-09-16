@@ -1,6 +1,6 @@
 /*
    DarkSky.net Weather Driver
-   Import URL: https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy
+   Import URL: https://raw.githubusercontent.com/Scottma61/Hubitat/master/DarkSky.net%20Weather%20Driver.groovy
    Copyright 2019 @Matthew (Scottma61)
  
    Many people contributed to the creation of this driver.  Significant contributors include:
@@ -79,7 +79,7 @@ public static String version()      {  return "1.0.7"  }
 import groovy.transform.Field
 
 metadata {
-    definition (name: "DarkSky.net Weather Driver", namespace: "Matthew", author: "Scottma61", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy") {
+    definition (name: "DarkSky.net Weather Driver", namespace: "Matthew", author: "Scottma61", importUrl: "https://raw.githubusercontent.com/Scottma61/Hubitat/master/DarkSky.net%20Weather%20Driver.groovy") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
@@ -120,7 +120,7 @@ metadata {
 			input "pollIntervalForecast", "enum", title: "External Source Poll Interval (daytime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
 			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
-			input "iconLocation", "text", required: true, defaultValue: "https://raw.githubusercontent.com/Scottma61/WeatherIcons/master/", title: "Alternative Icon Location:"
+			input "iconLocation", "text", required: true, defaultValue: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/tree/master/WeatherIcons/master/", title: "Alternative Icon Location:"
             input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
 	    	input "tempFormat", "enum", required: true, defaultValue: "Fahrenheit (°F)", title: "Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)",  options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "datetimeFormat", "enum", required: true, defaultValue: "m/d/yyyy 12 hour (am|pm)", title: "Display Unit - Date-Time Format",  options: [1:"m/d/yyyy 12 hour (am|pm)", 2:"m/d/yyyy 24 hour", 3:"mm/dd/yyyy 12 hour (am|pm)", 4:"mm/dd/yyyy 24 hour", 5:"d/m/yyyy 12 hour (am|pm)", 6:"d/m/yyyy 24 hour", 7:"dd/mm/yyyy 12 hour (am|pm)", 8:"dd/mm/yyyy 24 hour", 9:"yyyy/mm/dd 24 hour"]
@@ -584,7 +584,7 @@ def initialize() {
     updateDataValue("iconType", iconType ? 'true' : 'false')
     sourceImg = (settings?.sourceImg ?: false)
     summaryType = (settings?.summaryType ?: false)
-    iconLocation = (settings?.iconLocation ?: "https://raw.githubusercontent.com/Scottma61/WeatherIcons/master/")
+    iconLocation = (settings?.iconLocation ?: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/tree/master/WeatherIcons/master/")
     updateDataValue("iconLocation", iconLocation)
 
     setDateTimeFormats(datetimeFormat)
