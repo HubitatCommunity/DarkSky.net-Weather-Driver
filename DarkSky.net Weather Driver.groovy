@@ -54,6 +54,7 @@
  
  
    V1.0.7 - Moved driver to the HubitatCommunity github, added 'Nighttime' schedule option    - 09/16/2019
+            added upDateCheck() to show if driver is current (thanks @csteele)
    V1.0.6 - Another optional attribute bug fix.                                               - 09/15/2019 
    V1.0.5 - Tweaking and bug fixes.                                                           - 09/14/2019
    V1.0.4 - Added 'weatherIcons' used for OWM icons/dashboard                                 - 09/14/2019
