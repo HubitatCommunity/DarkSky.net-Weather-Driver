@@ -29,10 +29,6 @@
    You can select to use a base set of condition icons from the forecast source, or an 'alternative'
    (fancier) set.  The base 'Standard' icon set will be from WeatherUnderground.  You may choose the
    fancier 'Alternative' icon set if you use the Dark Sky.
-
-   *** PLEASE NOTE: You should download and store these 'Alternative' icons on your own server and
-   change the reference to that location in the driver. There is no assurance that those icon files will
-   remain in my github repository.    ***
  
    The driver exposes both metric and imperial measurements for you to select from.
  
