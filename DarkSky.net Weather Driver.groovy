@@ -1,6 +1,6 @@
 /*
    DarkSky.net Weather Driver
-   Import URL: https://raw.githubusercontent.com/Scottma61/Hubitat/master/DarkSky.net%20Weather%20Driver.groovy
+   Import URL: https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy
    Copyright 2019 @Matthew (Scottma61)
  
    Many people contributed to the creation of this driver.  Significant contributors include:
@@ -45,7 +45,7 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 09/14/2019
+   Last Update 09/16/2019
   { Left room below to document version changes...}
  
  
@@ -53,8 +53,8 @@
  
  
  
- 
-   V1.0.6   Another optional attribute bug fix.                                               - 09/15/2019 
+   V1.0.7 - Moved driver to the HubitatCommunity github, added 'Nighttime' schedule option    - 09/16/2019
+   V1.0.6 - Another optional attribute bug fix.                                               - 09/15/2019 
    V1.0.5 - Tweaking and bug fixes.                                                           - 09/14/2019
    V1.0.4 - Added 'weatherIcons' used for OWM icons/dashboard                                 - 09/14/2019
    V1.0.3 - Added windSpeed and windDirection, required for some dashboards.                  - 09/14/2019
@@ -79,7 +79,7 @@ public static String version()      {  return "1.0.7"  }
 import groovy.transform.Field
 
 metadata {
-    definition (name: "DarkSky.net Weather Driver", namespace: "Matthew", author: "Scottma61", importUrl: "https://raw.githubusercontent.com/Scottma61/Hubitat/master/DarkSky.net%20Weather%20Driver.groovy") {
+    definition (name: "DarkSky.net Weather Driver", namespace: "Matthew", author: "Scottma61", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy") {
         capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
