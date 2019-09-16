@@ -48,7 +48,7 @@
  
  
  
- 
+   V1.0.8 - Changed icon location to prevent duplication - Please update icon file location   - 09/16/2019
    V1.0.7 - Moved driver to the HubitatCommunity github, added 'Nighttime' schedule option    - 09/16/2019
             added upDateCheck() to show if driver is current (thanks @csteele)
    V1.0.6 - Another optional attribute bug fix.                                               - 09/15/2019 
@@ -72,7 +72,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.0.7"  }
+public static String version()      {  return "1.0.8"  }
 import groovy.transform.Field
 
 metadata {
@@ -117,7 +117,7 @@ metadata {
 			input "pollIntervalForecast", "enum", title: "External Source Poll Interval (daytime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
 			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
-			input "iconLocation", "text", required: true, defaultValue: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/WeatherIcons/", title: "Alternative Icon Location:"
+			input "iconLocation", "text", required: true, defaultValue: "https://raw.githubusercontent.com/HubitatCommunity/WeatherIcons/master/", title: "Alternative Icon Location:"
             input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
 	    	input "tempFormat", "enum", required: true, defaultValue: "Fahrenheit (°F)", title: "Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)",  options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "datetimeFormat", "enum", required: true, defaultValue: "m/d/yyyy 12 hour (am|pm)", title: "Display Unit - Date-Time Format",  options: [1:"m/d/yyyy 12 hour (am|pm)", 2:"m/d/yyyy 24 hour", 3:"mm/dd/yyyy 12 hour (am|pm)", 4:"mm/dd/yyyy 24 hour", 5:"d/m/yyyy 12 hour (am|pm)", 6:"d/m/yyyy 24 hour", 7:"dd/mm/yyyy 12 hour (am|pm)", 8:"dd/mm/yyyy 24 hour", 9:"yyyy/mm/dd 24 hour"]
@@ -581,7 +581,7 @@ def initialize() {
     updateDataValue("iconType", iconType ? 'true' : 'false')
     sourceImg = (settings?.sourceImg ?: false)
     summaryType = (settings?.summaryType ?: false)
-    iconLocation = (settings?.iconLocation ?: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/WeatherIcons/")
+    iconLocation = (settings?.iconLocation ?: "https://raw.githubusercontent.com/HubitatCommunity/WeatherIcons/master/")
     updateDataValue("iconLocation", iconLocation)
 
     setDateTimeFormats(datetimeFormat)
