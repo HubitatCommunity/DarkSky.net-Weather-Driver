@@ -47,7 +47,7 @@
  
  
  
- 
+   V1.0.9 - Default to 'TinyURL' for icon location, added log when changeing schedule         - 09/16/2019
    V1.0.8 - Changed icon location to prevent duplication - Please update icon file location   - 09/16/2019
    V1.0.7 - Moved driver to the HubitatCommunity github, added 'Nighttime' schedule option    - 09/16/2019
             added upDateCheck() to show if driver is current (thanks @csteele)
@@ -72,7 +72,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.0.8"  }
+public static String version()      {  return "1.0.9"  }
 import groovy.transform.Field
 
 metadata {
@@ -117,7 +117,7 @@ metadata {
 			input "pollIntervalForecast", "enum", title: "External Source Poll Interval (daytime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
 			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
-			input "iconLocation", "text", required: true, defaultValue: "https://raw.githubusercontent.com/HubitatCommunity/WeatherIcons/master/", title: "Alternative Icon Location:"
+			input "iconLocation", "text", required: true, defaultValue: "https://tinyurl.com/y6xrbhpf/", title: "Alternative Icon Location:"
             input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
 	    	input "tempFormat", "enum", required: true, defaultValue: "Fahrenheit (°F)", title: "Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)",  options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "datetimeFormat", "enum", required: true, defaultValue: "m/d/yyyy 12 hour (am|pm)", title: "Display Unit - Date-Time Format",  options: [1:"m/d/yyyy 12 hour (am|pm)", 2:"m/d/yyyy 24 hour", 3:"mm/dd/yyyy 12 hour (am|pm)", 4:"mm/dd/yyyy 24 hour", 5:"d/m/yyyy 12 hour (am|pm)", 6:"d/m/yyyy 24 hour", 7:"dd/mm/yyyy 12 hour (am|pm)", 8:"dd/mm/yyyy 24 hour", 9:"yyyy/mm/dd 24 hour"]
@@ -218,6 +218,11 @@ def doPollDS() {
         updateDataValue("is_light", "1")
     }
     if(getDataValue("is_light") != getDataValue("is_lightOld")) {
+        if(getDataValue("is_light")=="1") {
+            log.info("DarkSky.net Weather Driver - INFO: Switching to Daytime schedule.")
+        }else{
+            log.info("DarkSky.net Weather Driver - INFO: Switching to Nighttime schedule.")
+        }
         initialize()
     }    
 // >>>>>>>>>> End Setup Global Variables <<<<<<<<<<  
@@ -560,9 +565,6 @@ def updated()   {
     updateDataValue("forecastPoll", "false")
     if (settingEnable) runIn(2100,settingsOff)  // "roll up" (hide) the condition selectors after 35 min
     runIn(5, pollDS)
-    updateCheck()
-    schedule("0 0 8 ? * FRI *", updateCheck)
-
 }
 def initialize() {
     state.clear()
@@ -581,11 +583,13 @@ def initialize() {
     updateDataValue("iconType", iconType ? 'true' : 'false')
     sourceImg = (settings?.sourceImg ?: false)
     summaryType = (settings?.summaryType ?: false)
-    iconLocation = (settings?.iconLocation ?: "https://raw.githubusercontent.com/HubitatCommunity/WeatherIcons/master/")
+    iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
 
     setDateTimeFormats(datetimeFormat)
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
+    updateCheck()
+    schedule("0 0 8 ? * FRI *", updateCheck)
     pollSunRiseSet()
     Random rand = new Random(now())
     ssseconds = rand.nextInt(60)
