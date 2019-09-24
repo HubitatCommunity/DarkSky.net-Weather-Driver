@@ -41,11 +41,12 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 09/18/2019
+   Last Update 09/24/2019
   { Left room below to document version changes...}
  
  
- 
+   V1.1.1 - Corrected MoonPhase, optimized lux updates and code optimizations re-organized    - 09/24/2019
+            preference order and some goupings of 'optional' attributes.
    V1.1.0 - Randomized schedule start times, Added 'Powered by DarkSky' attribution           - 09/18/2019
    V1.0.9 - Default to 'TinyURL' for icon location, added log when changeing schedule         - 09/16/2019
    V1.0.8 - Changed icon location to prevent duplication - Please update icon file location   - 09/16/2019
@@ -72,12 +73,11 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.1.0"  }
+public static String version()      {  return "1.1.1"  }
 import groovy.transform.Field
 
 metadata {
     definition (name: "DarkSky.net Weather Driver", namespace: "Matthew", author: "Scottma61", importUrl: "https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy") {
-        capability "Actuator"
         capability "Sensor"
         capability "Temperature Measurement"
         capability "Illuminance Measurement"
@@ -87,12 +87,11 @@ metadata {
 	
 		attributesMap.each
 		{
-//            k, v -> if (("${k}Publish") == true && v.typeof) {
             k, v -> if (v.typeof)        attribute "${k}" , "${v.typeof}"
 		}
 //    The following attributes may be needed for dashboards that require these attributes,
-//    so they are listed here and shown by default.
-        attribute "city", "string"              //SharpTool.io  SmartTiles
+//    so they are alway available and shown by default.
+        attribute "city", "string"              //Hubitat  OpenWeather  SharpTool.io  SmartTiles 
         attribute "feelsLike", "number"         //SharpTool.io  SmartTiles
         attribute "forecastIcon", "string"      //SharpTool.io
         attribute "localSunrise", "string"      //SharpTool.io  SmartTiles
@@ -100,44 +99,74 @@ metadata {
         attribute "percentPrecip", "number"     //SharpTool.io  SmartTiles
         attribute "weather", "string"           //SharpTool.io  SmartTiles
         attribute "weatherIcon", "string"       //SharpTool.io  SmartTiles
-        attribute "weatherIcons", "string"       //Hubitat  openWeather
+        attribute "weatherIcons", "string"      //Hubitat  openWeather
         attribute "wind", "number"              //SharpTool.io
         attribute "windDirection", "number"     //Hubitat  OpenWeather
         attribute "windSpeed", "number"         //Hubitat  OpenWeather
+
+//      The attributes below are sub-groups of optional attributes.  They need to be listed here to be available
+//DSAttribution
+        attribute "dsIcondarktext", "string"
+        attribute "dsIconlighttext", "string"
         
+//fcstHighLow
+		attribute "forecastHigh", "string"
+		attribute "forecastLow", "string"
+
+// controlled with localSunrise
+		attribute "tw_begin", "string"
+		attribute "sunriseTime", "string"
+		attribute "noonTime", "string"
+		attribute "sunsetTime", "string"
+		attribute "tw_end", "string"
+
+//obspoll   these are the same value...
+		attribute "last_poll_Forecast", "string"
+		attribute "last_observation_Forecast", "string"
+
+//precipExtended
+		attribute "rainDayAfterTomorrow", "number"
+		attribute "rainTomorrow", "number"
+
+//nearestStorm
+		attribute "nearestStormBearing", "string"
+		attribute "nearestStormCardinal", "string"
+		attribute "nearestStormDirection", "string"
+		attribute "nearestStormDistance", "number"
 
         command "pollData"         
     }
-    def settingDescr = settingEnable ? "<br><i>Hide many of the Preferences to reduce the clutter, if needed, by turning OFF this toggle.</i><br>" : "<br><i>Many Preferences are available to you, if needed, by turning ON this toggle.</i><br>"
+    def settingDescr = settingEnable ? "<br><i>Hide many of the optional attributes to reduce the clutter, if needed, by turning OFF this toggle.</i><br>" : "<br><i>Many optional attributes are available to you, if needed, by turning ON this toggle.</i><br>"
 
     preferences() {
 		section("Query Inputs"){
-			input "city", "text", required: true, defaultValue: "City or Location name forecast area", title: "City name"
 			input "apiKey", "text", required: true, defaultValue: "Type DarkSky.net API Key Here", title: "API Key"
+            input "city", "text", required: true, defaultValue: "City or Location name forecast area", title: "City name"
 			input "pollIntervalForecast", "enum", title: "External Source Poll Interval (daytime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
-            input "dsIconbackgrounddark", "bool", required: true, defaultValue: false, title: "DarkSky logo text color: On = Dark  -  Off = Light"            
-			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
-			input "iconLocation", "text", required: true, defaultValue: "https://tinyurl.com/y6xrbhpf/", title: "Alternative Icon Location:"
-            input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
+            input "logSet", "bool", title: "Create extended Logging", required: true, defaultValue: false
 	    	input "tempFormat", "enum", required: true, defaultValue: "Fahrenheit (°F)", title: "Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)",  options: ["Fahrenheit (°F)", "Celsius (°C)"]
             input "datetimeFormat", "enum", required: true, defaultValue: "m/d/yyyy 12 hour (am|pm)", title: "Display Unit - Date-Time Format",  options: [1:"m/d/yyyy 12 hour (am|pm)", 2:"m/d/yyyy 24 hour", 3:"mm/dd/yyyy 12 hour (am|pm)", 4:"mm/dd/yyyy 24 hour", 5:"d/m/yyyy 12 hour (am|pm)", 6:"d/m/yyyy 24 hour", 7:"dd/mm/yyyy 12 hour (am|pm)", 8:"dd/mm/yyyy 24 hour", 9:"yyyy/mm/dd 24 hour"]
             input "distanceFormat", "enum", required: true, defaultValue: "Miles (mph)", title: "Display Unit - Distance/Speed: Miles or Kilometres",  options: ["Miles (mph)", "Kilometers (kph)"]
             input "pressureFormat", "enum", required: true, defaultValue: "Inches", title: "Display Unit - Pressure: Inches or Millibar",  options: ["Inches", "Millibar"]
             input "rainFormat", "enum", required: true, defaultValue: "Inches", title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
-            input "summaryType", "bool", title: "Full Weather Summary", required: true, defaultValue: false
-            input "logSet", "bool", title: "Create extended Logging", required: true, defaultValue: false
-            input "settingEnable", "bool", title: "<b>Display All Preferences</b>", description: "$settingDescr", defaultValue: true
+			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
+			input "iconLocation", "text", required: true, defaultValue: "https://tinyurl.com/y6xrbhpf/", title: "Alternative Icon Location:"
+            input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
+            input "dsIconbackgrounddark", "bool", required: true, defaultValue: false, title: "DarkSky logo text color for myTile/weatherSummary: On = Dark  -  Off = Light"                        
+
+            input "settingEnable", "bool", title: "<b>Display All Optional Attributes</b>", description: "$settingDescr", defaultValue: true
 	// build a Selector for each mapped Attribute or group of attributes
 	    	attributesMap.each
 		    {
 	    		keyname, attribute ->
-	    		if (settingEnable) input "${keyname}Publish", "bool", title: "${attribute.title}", required: true, defaultValue: "${attribute.default}", description: "<br>${attribute.descr}<br>"
+                if (settingEnable) {
+                    input "${keyname}Publish", "bool", title: "${attribute.title}", required: true, defaultValue: "${attribute.default}", description: "<br>${attribute.descr}<br>"
+                    if(keyname == "weatherSummary") input "summaryType", "bool", title: "Full Weather Summary", description: "<br>Full: on or short: off summary?<br>", required: true, defaultValue: false
+                }
 	    	}
         }
-    }
-
-    
+    }    
 }
 
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
@@ -196,13 +225,13 @@ def pollDSHandler(resp, data) {
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
         ds = parseJson(resp.data)
         LOGINFO("DarkSky Data: $ds")
-		doPollDS()		// parse the data returned by DarkSky
+		doPollDS(ds)		// parse the data returned by DarkSky
 	} else {
 		log.error "DarkSky.net Weather Driver - DarkSky weather api did not return data"
 	}
 }
 
-def doPollDS() {
+def doPollDS(Map ds) {
 // <<<<<<<<<< Begin Setup Global Variables >>>>>>>>>>
     setDateTimeFormats(datetimeFormat)    
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
@@ -225,6 +254,7 @@ def doPollDS() {
             log.info("DarkSky.net Weather Driver - INFO: Switching to Nighttime schedule.")
         }
         initialize()
+        updateDataValue("is_lightOld", getDataValue("is_light"))
     }    
 // >>>>>>>>>> End Setup Global Variables <<<<<<<<<<  
 
@@ -239,31 +269,32 @@ def doPollDS() {
     updateDataValue("humidity", (Math.round(ds.currently.humidity.toBigDecimal() * 1000) / 10).toString())
     updateDataValue("pressure", (isPressureMetric ? (Math.round(ds.currently.pressure.toBigDecimal() * 10) / 10) : (Math.round(ds.currently.pressure.toBigDecimal() * 0.029529983071445 * 100) / 100)).toString())
     updateDataValue("temperature", (isFahrenheit ? (Math.round(ds.currently.temperature.toBigDecimal() * 10) / 10) : (Math.round((ds.currently.temperature.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
-    if(ds.currently.windSpeed.toBigDecimal() < 1.0) {
+    def tws = ds.currently.windSpeed.toBigDecimal()
+    if(tws < 1.0) {
         w_string_bft = "Calm"; w_bft_icon = 'wb0.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 4.0) {
+    }else if(tws < 4.0) {
         w_string_bft = "Light air"; w_bft_icon = 'wb1.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 8.0) {
+    }else if(tws < 8.0) {
         w_string_bft = "Light breeze"; w_bft_icon = 'wb2.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 13.0) {
+    }else if(tws < 13.0) {
         w_string_bft = "Gentle breeze"; w_bft_icon = 'wb3.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 19.0) {
+    }else if(tws < 19.0) {
         w_string_bft = "Moderate breeze"; w_bft_icon = 'wb4.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 25.0) {
+    }else if(tws < 25.0) {
         w_string_bft = "Fresh breeze"; w_bft_icon = 'wb5.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 32.0) {
+    }else if(tws < 32.0) {
         w_string_bft = "Strong breeze"; w_bft_icon = 'wb6.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 39.0) {
+    }else if(tws < 39.0) {
         w_string_bft = "High wind, moderate gale, near gale"; w_bft_icon = 'wb7.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 47.0) {
+    }else if(tws < 47.0) {
         w_string_bft = "Gale, fresh gale"; w_bft_icon = 'wb8.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 55.0) {
+    }else if(tws < 55.0) {
         w_string_bft = "Strong/severe gale"; w_bft_icon = 'wb9.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 64.0) {
+    }else if(tws < 64.0) {
         w_string_bft = "Storm, whole gale"; w_bft_icon = 'wb10.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() < 73.0) {
+    }else if(tws < 73.0) {
         w_string_bft = "Violent storm"; w_bft_icon = 'wb11.png'
-    }else if(ds.currently.windSpeed.toBigDecimal() >= 73.0) {
+    }else if(tws >= 73.0) {
         w_string_bft = "Hurricane force"; w_bft_icon = 'wb12.png'
     }
 	updateDataValue("wind_string_bft", w_string_bft)
@@ -271,39 +302,40 @@ def doPollDS() {
     updateDataValue("wind", (isDistanceMetric ? (Math.round(ds.currently.windSpeed.toBigDecimal() * 1.609344 * 10) / 10) : (Math.round(ds.currently.windSpeed.toBigDecimal() * 10) / 10)).toString())
     updateDataValue("wind_gust", (isDistanceMetric ? (Math.round(ds.currently.windGust.toBigDecimal() * 1.609344 * 10) / 10) : (Math.round(ds.currently.windGust.toBigDecimal() * 10) / 10)).toString())
     updateDataValue("wind_degree", ds.currently.windBearing.toInteger().toString())	
-    if(ds.currently.windBearing.toBigDecimal() < 11.25) {
+    twb = ds.currently.windBearing.toBigDecimal()
+    if(twb < 11.25) {
         w_cardinal = 'N'; w_direction = 'North'
-    }else if(ds.currently.windBearing.toBigDecimal() < 33.75) {
+    }else if(twb < 33.75) {
         w_cardinal = 'NNE'; w_direction = 'North-Northeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 56.25) {
+    }else if(twb < 56.25) {
         w_cardinal = 'NE';  w_direction = 'Northeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 56.25) {
+    }else if(twb < 56.25) {
         w_cardinal = 'ENE'; w_direction = 'East-Northeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 101.25) {
+    }else if(twb < 101.25) {
         w_cardinal = 'E'; w_direction = 'East'
-    }else if(ds.currently.windBearing.toBigDecimal() < 123.75) {
+    }else if(twb < 123.75) {
         w_cardinal = 'ESE'; w_direction = 'East-Southeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 146.25) {
+    }else if(twb < 146.25) {
         w_cardinal = 'SE'; w_direction = 'Southeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 168.75) {
+    }else if(twb < 168.75) {
         w_cardinal = 'SSE'; w_direction = 'South-Southeast'
-    }else if(ds.currently.windBearing.toBigDecimal() < 191.25) {
+    }else if(twb < 191.25) {
         w_cardinal = 'S'; w_direction = 'South'
-    }else if(ds.currently.windBearing.toBigDecimal() < 213.75) {
+    }else if(twb < 213.75) {
         w_cardinal = 'SSW'; w_direction = 'South-Southwest'
-    }else if(ds.currently.windBearing.toBigDecimal() < 236.25) {
+    }else if(twb < 236.25) {
         w_cardinal = 'SW'; w_direction = 'Southwest'
-    }else if(ds.currently.windBearing.toBigDecimal() < 258.75) {
+    }else if(twb < 258.75) {
         w_cardinal = 'WSW'; w_direction = 'West-Southwest'
-    }else if(ds.currently.windBearing.toBigDecimal() < 281.25) {
+    }else if(twb < 281.25) {
         w_cardinal = 'W'; w_direction = 'West'
-    }else if(ds.currently.windBearing.toBigDecimal() < 303.75) {
+    }else if(twb < 303.75) {
         w_cardinal = 'WNW'; w_direction = 'West-Northwest'
-    }else if(ds.currently.windBearing.toBigDecimal() < 326.25) {
+    }else if(twb < 326.25) {
         w_cardinal = 'NW'; w_direction = 'Northwest'
-    }else if(ds.currently.windBearing.toBigDecimal() < 348.75) {
+    }else if(twb < 348.75) {
         w_cardinal = 'NNW'; w_direction = 'North-Northwest'
-    }else if(ds.currently.windBearing.toBigDecimal() >= 348.75) {
+    }else if(twb >= 348.75) {
         w_cardinal = 'N'; w_direction = 'North'
     }
     updateDataValue("wind_direction", w_direction)
@@ -316,39 +348,40 @@ def doPollDS() {
             s_direction = 'Unknown'        
         }else{
             updateDataValue("nearestStormBearing", (Math.round(ds.currently.nearestStormBearing * 10) / 10).toString())
-            if(ds.currently.nearestStormBearing.toInteger() < 11.25) {
+            tnsb = ds.currently.nearestStormBearing.toBigDecimal()
+            if(tnsb < 11.25) {
                 s_cardinal = 'N'; s_direction = 'North'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 33.75) {
+            }else if(tnsb < 33.75) {
                 s_cardinal = 'NNE'; s_direction = 'North-Northeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 56.25) {
+            }else if(tnsb < 56.25) {
                 s_cardinal = 'NE';  s_direction = 'Northeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 78.75) {
+            }else if(tnsb < 78.75) {
                 s_cardinal = 'ENE'; s_direction = 'East-Northeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 101.25) {
+            }else if(tnsb < 101.25) {
                 s_cardinal = 'E'; s_direction = 'East'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 123.75) {
+            }else if(tnsb < 123.75) {
                 s_cardinal = 'ESE'; s_direction = 'East-Southeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 146.25) {
+            }else if(tnsb < 146.25) {
                 s_cardinal = 'SE'; s_direction = 'Southeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 168.75) {
+            }else if(tnsb < 168.75) {
                 s_cardinal = 'SSE'; s_direction = 'South-Southeast'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 191.25) {
+            }else if(tnsb < 191.25) {
                 s_cardinal = 'S'; s_direction = 'South'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 213.75) {
+            }else if(tnsb < 213.75) {
                 s_cardinal = 'SSW'; s_direction = 'South-Southwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 236.25) {
+            }else if(tnsb < 236.25) {
                 s_cardinal = 'SW'; s_direction = 'Southwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 258.75) {
+            }else if(tnsb < 258.75) {
                 s_cardinal = 'WSW'; s_direction = 'West-Southwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 281.25) {
+            }else if(tnsb < 281.25) {
                 s_cardinal = 'W'; s_direction = 'West'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 303.75) {
+            }else if(tnsb < 303.75) {
                 s_cardinal = 'WNW'; s_direction = 'West-Northwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 326.26) {
+            }else if(tnsb < 326.26) {
                 s_cardinal = 'NW'; s_direction = 'Northwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() < 348.75) {
+            }else if(tnsb < 348.75) {
                 s_cardinal = 'NNW'; s_direction = 'North-Northwest'
-            }else if(ds.currently.nearestStormBearing.toBigDecimal() >= 348.75) {
+            }else if(tnsb >= 348.75) {
                 s_cardinal = 'N'; s_direction = 'North'
             }
         }    
@@ -359,15 +392,16 @@ def doPollDS() {
 	updateDataValue("ozone", (Math.round(ds.currently.ozone.toBigDecimal() * 10 ) / 10).toString())
 
     if(moonPhasePublish){
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 6.25) {mPhase = "New Moon"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 18.75) {mPhase = "Waxing Crescent"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 31.25) {mPhase = "First Quarter"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 43.75) {mPhase = "Waxing Gibbous"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 56.25) {mPhase = "Full Moon"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 68.75) {mPhase = "Waning Gibbous"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 81.25) {mPhase = "Last Quarter"}
-        if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 < 93.75) {mPhase = "Waxing Gibbous"}
-		if (ds.daily.data[0].moonPhase.toBigDecimal() * 100 >= 93.75) {mPhase = "New Moon"} 
+        tmnp = ds.daily.data[0].moonPhase.toBigDecimal() * 100
+        if (tmnp < 6.25) {mPhase = "New Moon"}
+        else if (tmnp < 18.75) {mPhase = "Waxing Crescent"}
+        else if (tmnp < 31.25) {mPhase = "First Quarter"}
+        else if (tmnp < 43.75) {mPhase = "Waxing Gibbous"}
+        else if (tmnp < 56.25) {mPhase = "Full Moon"}
+        else if (tmnp < 68.75) {mPhase = "Waning Gibbous"}
+        else if (tmnp < 81.25) {mPhase = "Last Quarter"}
+        else if (tmnp < 93.75) {mPhase = "Waxing Gibbous"}
+		else if (tmnp >= 93.75) {mPhase = "New Moon"} 
         updateDataValue("moonPhase", mPhase)
     }
 // >>>>>>>>>> End Process Standard Weather-Station Variables (Regardless of Forecast Selection)  <<<<<<<<<<	
@@ -387,15 +421,16 @@ def doPollDS() {
     }
     updateDataValue("vis", (isDistanceMetric ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
     updateDataValue("percentPrecip", !ds.daily.data[0].precipProbability ? "1" : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger().toString())
+    tid = getDataValue("is_day")=="1"
     switch(ds.currently.icon) {
         case "clear-day": c_code = "sunny"; break;
         case "clear-night": c_code = "nt_clear"; break;
-        case "rain": c_code = (getDataValue("is_day")=="1" ? "rain" : "nt_rain"); break;
-        case "wind": c_code = (getDataValue("is_day")=="1" ? "breezy" : "nt_breezy"); break;
-        case "snow": c_code = (getDataValue("is_day")=="1" ? "snow" : "nt_snow"); break;
-        case "sleet": c_code = (getDataValue("is_day")=="1" ? "sleet" : "nt_sleet"); break;
-        case "fog": c_code = (getDataValue("is_day")=="1" ? "fog" : "nt_fog"); break;
-        case "cloudy": c_code = (getDataValue("is_day")=="1" ? "cloudy" : "nt_cloudy"); break;
+        case "rain": c_code = (tid ? "rain" : "nt_rain"); break;
+        case "wind": c_code = (tid ? "breezy" : "nt_breezy"); break;
+        case "snow": c_code = (tid ? "snow" : "nt_snow"); break;
+        case "sleet": c_code = (tid ? "sleet" : "nt_sleet"); break;
+        case "fog": c_code = (tid ? "fog" : "nt_fog"); break;
+        case "cloudy": c_code = (tid ? "cloudy" : "nt_cloudy"); break;
         case "partly-cloudy-day": c_code = "partlycloudy"; break;
         case "partly-cloudy-night": c_code = "nt_partlycloudy"; break;
         default: c_code = "unknown"; break;
@@ -405,12 +440,12 @@ def doPollDS() {
     switch(ds.daily.data[0].icon){
         case "clear-day": f_code =  "sunny"; break;
         case "clear-night": f_code =  "nt_clear"; break;
-        case "rain": f_code = (getDataValue("is_day")=="1" ? "rain" : "nt_rain"); break;
-        case "wind": f_code = (getDataValue("is_day")=="1" ? "breezy" : "nt_breezy"); break;
-        case "snow": f_code = (getDataValue("is_day")=="1" ? "snow" : "nt_snow"); break;
-        case "sleet": f_code = (getDataValue("is_day")=="1" ? "sleet" : "nt_sleet"); break;
-        case "fog": f_code = (getDataValue("is_day")=="1" ? "fog" : "nt_fog"); break;
-        case "cloudy": f_code = (getDataValue("is_day")=="1" ? "cloudy" : "nt_cloudy"); break;
+        case "rain": f_code = (tid ? "rain" : "nt_rain"); break;
+        case "wind": f_code = (tid ? "breezy" : "nt_breezy"); break;
+        case "snow": f_code = (tid ? "snow" : "nt_snow"); break;
+        case "sleet": f_code = (tid ? "sleet" : "nt_sleet"); break;
+        case "fog": f_code = (tid ? "fog" : "nt_fog"); break;
+        case "cloudy": f_code = (tid ? "cloudy" : "nt_cloudy"); break;
         case "partly-cloudy-day": f_code = "partlycloudy"; break;
         case "partly-cloudy-night": f_code = "nt_partlycloudy"; break;
         default: f_code = "unknown"; break;
@@ -423,10 +458,7 @@ def doPollDS() {
         updateDataValue("rainTomorrow", (ds.daily.data[1].precipProbability.toBigDecimal() * 100).toInteger().toString())
         updateDataValue("rainDayAfterTomorrow", (ds.daily.data[2].precipProbability.toBigDecimal() * 100).toInteger().toString())
     }
-	def (lux, bwn) = estimateLux(getDataValue("condition_code"), getDataValue("cloud"))
-	updateDataValue("bwn", bwn)
-    updateDataValue("illuminance", !lux ? "0" : lux.toString())
-    updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
+    updateLux(false)
     updateDataValue("ultravioletIndex", ds.currently.uvIndex.toBigDecimal().toString())
 	updateDataValue("feelsLike", (isFahrenheit ? (Math.round(ds.currently.apparentTemperature.toBigDecimal() * 10) / 10) : (Math.round((ds.currently.apparentTemperature.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
 // >>>>>>>>>> End Setup Forecast Variables <<<<<<<<<<
@@ -447,12 +479,33 @@ def doPollDS() {
         sendEventPublish(name: "condition_icon_only", value: (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) +'.gif')
     }
 // >>>>>>>>>> End Icon Processing <<<<<<<<<<    
-    if(getDataValue("forecastPoll") == "false"){
-        updateDataValue("forecastPoll", "true")
-    }
     PostPoll()
 }
 // >>>>>>>>>> End DarkSky Poll Routines <<<<<<<<<<
+
+// >>>>>>>>>> Begin Lux Processing <<<<<<<<<<    
+def updateLux(boolean pollAgain=true) {
+	LOGINFO("UpdateLux")
+	if(pollAgain) {
+		String curTime = new Date().format("HH:mm", TimeZone.getDefault())
+		String newLight
+		if(curTime < getDataValue("tw_begin") || curTime > getDataValue("tw_end")) {
+			newLight =  "0"
+		} else {
+			newLight =  "1"
+		}
+		if(newLight != getDataValue("is_lightOld")) {
+			pollDS()
+			return
+		}
+	}
+	def (lux, bwn) = estimateLux(getDataValue("condition_code"), getDataValue("cloud"))
+	updateDataValue("bwn", bwn)
+	updateDataValue("illuminance", !lux ? "0" : lux.toString())
+	updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
+	if(pollAgain) PostPoll()
+}
+// >>>>>>>>>> End Lux Processing <<<<<<<<<<
 
 // <<<<<<<<<< Begin Post-Poll Routines >>>>>>>>>>
 def PostPoll() {
@@ -467,25 +520,29 @@ def PostPoll() {
         sendEvent(name: "sunsetTime", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format(timeFormat, TimeZone.getDefault()))
         sendEvent(name: "tw_end", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_end).format(timeFormat, TimeZone.getDefault()))    
     }
-    sendEvent(name: "DSattribution", value: '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>')    
-    sendEvent(name: "localSunset", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format(timeFormat, TimeZone.getDefault())) // only needed for certain dashboards
-    sendEvent(name: "localSunrise", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format(timeFormat, TimeZone.getDefault())) // only needed for certain dashboards       
-/*  Weather-Display & 'Required for Dashboards' Data Elements */
+    if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
+        sendEvent(name: "localSunset", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format(timeFormat, TimeZone.getDefault())) // only needed for certain dashboards
+        sendEvent(name: "localSunrise", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format(timeFormat, TimeZone.getDefault())) // only needed for certain dashboards       
+    }
+
+/*  Weather-Display Data Elements */
 	sendEvent(name: "humidity", value: getDataValue("humidity").toBigDecimal(), unit: '%')
     sendEvent(name: "illuminance", value: getDataValue("illuminance").toInteger(), unit: 'lx')
 	sendEvent(name: "pressure", value: isPressureMetric ? String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) : String.format("%2.2f", getDataValue("pressure").toBigDecimal()), unit: (isPressureMetric ? 'mbar' : 'inHg'))
 	sendEvent(name: "temperature", value: String.format("%3.1f", getDataValue("temperature").toBigDecimal()), unit: (isFahrenheit ? '°F' : '°C'))
     sendEvent(name: "ultravioletIndex", value: getDataValue("ultravioletIndex").toBigDecimal(), unit: 'uvi')
-    sendEvent(name: "city", value: getDataValue("city"))
-    sendEvent(name: "feelsLike", value: getDataValue("feelsLike").toBigDecimal(), unit: (isFahrenheit ? '°F' : '°C'))
-    sendEvent(name: "forecastIcon", value: getDataValue("condition_code"))
-    sendEvent(name: "percentPrecip", value: getDataValue("percentPrecip"))
-    sendEvent(name: "weather", value: getDataValue("condition_text"))
-    sendEvent(name: "weatherIcon", value: getDataValue("condition_code"))
-    sendEvent(name: "weatherIcons", value: getowmImgName(getDataValue("condition_code")))
-    sendEvent(name: "wind", value: getDataValue("wind"), unit: (isDistanceMetric ? 'KPH' : 'MPH'))
-    sendEvent(name: "windSpeed", value: getDataValue("wind").toBigDecimal(), unit: (isDistanceMetric ? 'KPH' : 'MPH'))
-    sendEvent(name: "windDirection", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")  
+
+/*  'Required for Dashboards' Data Elements */    
+    if(dashHubitatOWP || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "city", value: getDataValue("city")) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "feelsLike", value: getDataValue("feelsLike").toBigDecimal(), unit: (isFahrenheit ? '°F' : '°C')) }
+    if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getDataValue("condition_code")) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "percentPrecip", value: getDataValue("percentPrecip")) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weather", value: getDataValue("condition_text")) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weatherIcon", value: getDataValue("condition_code")) }
+    if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getowmImgName(getDataValue("condition_code"))) }
+    if(dashSharpToolsPublish) { sendEvent(name: "wind", value: getDataValue("wind"), unit: (isDistanceMetric ? 'KPH' : 'MPH')) }
+    if(dashHubitatOWMPublish) { sendEvent(name: "windSpeed", value: getDataValue("wind").toBigDecimal(), unit: (isDistanceMetric ? 'KPH' : 'MPH')) }
+    if(dashHubitatOWMPublish) { sendEvent(name: "windDirection", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")   }
 
 /*  Selected optional Data Elements */   
     sendEventPublish(name: "alert", value: getDataValue("alert"))
@@ -494,6 +551,10 @@ def PostPoll() {
     sendEventPublish(name: "condition_code", value: getDataValue("condition_code"))
     sendEventPublish(name: "condition_text", value: getDataValue("condition_text"))
     sendEventPublish(name: "dewpoint", value: getDataValue("dewpoint").toBigDecimal(), unit: (isFahrenheit ? '°F' : '°C'))
+    if(dsAttributionPublish){
+        sendEvent(name: "dsIconlighttext", value: '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'poweredby-oneline-darkbackground.png' + ' style=\"height:1.5em\";></a>')
+        sendEvent(name: "dsIcondarktext", value: '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'poweredby-oneline.png' + ' style=\"height:1.5em\";></a>')
+    }
     sendEventPublish(name: "forecast_code", value: getDataValue("forecast_code"))
     sendEventPublish(name: "forecast_text", value: getDataValue("forecast_text"))
     if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
@@ -525,8 +586,8 @@ def PostPoll() {
     }
 	
 //  <<<<<<<<<< Begin Built Weather Summary text >>>>>>>>>> 
-    Summary_last_poll_time = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", "${futime}").format(timeFormat, TimeZone.getDefault())
-    Summary_last_poll_date = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", "${futime}").format(dateFormat, TimeZone.getDefault())
+    Summary_last_poll_time = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(timeFormat, TimeZone.getDefault())
+    Summary_last_poll_date = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(dateFormat, TimeZone.getDefault())
     mtprecip = getDataValue("percentPrecip") + '%'
     if(weatherSummaryPublish){ // don't bother setting these values if it's not enabled
 		Summary_forecastTemp = " with a high of " + String.format("%3.1f", getDataValue("forecastHigh").toBigDecimal()) + (isFahrenheit ? '°F' : '°C') + " and a low of " + String.format("%3.1f", getDataValue("forecastLow").toBigDecimal()) + (isFahrenheit ? '°F. ' : '°C. ')
@@ -565,14 +626,16 @@ def PostPoll() {
 // >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
 
 def updated()   {
-	initialize()  // includes an unsubscribe()
-    updateDataValue("forecastPoll", "false")
-    if (settingEnable) runIn(2100,settingsOff)  // "roll up" (hide) the condition selectors after 35 min
-    runIn(5, pollDS)
-}
-def initialize() {
     state.clear()
     unschedule()
+    updateCheck()
+    initialize()
+    runEvery5Minutes(updateLux)
+    runIn(5, pollDS)
+    if (settingEnable) runIn(2100,settingsOff)  // "roll up" (hide) the condition selectors after 35 min
+    if(settings.logSet) runIn(1800,logsOff)
+}
+def initialize() {
     logSet = (settings?.logSet ?: false)
     city = (settings?.city ?: "")
     updateDataValue("city", !city ? "" : city)
@@ -590,11 +653,9 @@ def initialize() {
     summaryType = (settings?.summaryType ?: false)
     iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
-
+    state.DarkSky = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'poweredby-oneline.png style=\"height:1.5em\";></a>'
     setDateTimeFormats(datetimeFormat)
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
-    updateCheck()
-    schedule("0 0 8 ? * FRI *", updateCheck)
     pollSunRiseSet()
     Random rand = new Random(now())
     ssseconds = rand.nextInt(60)
@@ -605,12 +666,13 @@ def initialize() {
     minutes30 = rand.nextInt(30)
     minutes60 = rand.nextInt(60)
     hours3 = rand.nextInt(3)
+    schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
+	schedule("0 ${ssseconds} 8 ? * FRI *", updateCheck)
     if(ssseconds < 56 ){
         dsseconds = ssseconds + 4
     }else{
         dsseconds = ssseconds - 60 + 4
     }   
-    schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
 	if(getDataValue("is_light")=="1") {
 		if(pollIntervalForecast == "Manual Poll Only"){
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
@@ -654,7 +716,7 @@ def initialize() {
             }
 		}
 	}
-	updateDataValue("is_lightOld", getDataValue("is_light"))
+//	updateDataValue("is_lightOld", getDataValue("is_light"))
     return
 }
 
@@ -834,7 +896,7 @@ public getowmImgName(wCode){
     return (LUitem ? LUitem.owm : '')   
 }
 def logCheck(){
-    if(logSet == true){
+    if(setting?.logSet == true){
         log.info "DarkSky.net Weather Driver - INFO:  All Logging Enabled"
 	} else {
         log.info "DarkSky.net Weather Driver - INFO:  Further Logging Disabled"
@@ -844,7 +906,7 @@ def logCheck(){
 
 def LOGDEBUG(txt){
     try {
-    	if(logSet == true){ log.debug("DarkSky.net Weather Driver - DEBUG:  ${txt}") }
+    	if(settings?.logSet == true){ log.debug("DarkSky.net Weather Driver - DEBUG:  ${txt}") }
     } catch(ex) {
     	log.error("LOGDEBUG DarkSky.net Weather Driver - unable to output requested data!")
     }
@@ -853,11 +915,16 @@ def LOGDEBUG(txt){
 
 def LOGINFO(txt){
     try {
-    	if(logSet == true){log.info("DarkSky.net Weather Driver - INFO:  ${txt}") }
+    	if(settings?.logSet == true){log.info("DarkSky.net Weather Driver - INFO:  ${txt}") }
     } catch(ex) {
     	log.error("LOGINFO DarkSky.net Weather Driver - unable to output requested data!")
     }
     return
+}
+
+def logsOff(){
+	log.warn "${device?.displayName} debug logging disabled..."
+	device.updateSetting("logSet",[value:"false",type:"bool"])
 }
 
 def settingsOff(){
@@ -867,7 +934,7 @@ def settingsOff(){
 
 def sendEventPublish(evt)	{
 // 	Purpose: Attribute sent to DB if selected	
-	if (this[evt.name + "Publish"]) {
+    if (settings."${evt.name + "Publish"}") {
 		sendEvent(name: evt.name, value: evt.value, descriptionText: evt.descriptionText, unit: evt.unit, displayed: evt.displayed);
 		LOGDEBUG("$evt.name") //: $evt.name, $evt.value $evt.unit"
     }
@@ -911,7 +978,11 @@ def sendEventPublish(evt)	{
 	"condition_icon":			[title: "Condition Icon", descr: "Dislay 'condition_icon'?", typeof: "string", default: "false"],
     "condition_iconWithText":   [title: "Condition Icon With Text", descr: "Display 'condition_iconWithText'?", typeof: "string", default: "false"],    
 	"condition_text":			[title: "Condition Text", descr: "Display 'condition_text'?", typeof: "string", default: "false"],
+    "dashHubitatOWM":           [title: "Dash - Hubitat and OpenWeatherMap", descr: "Display attributes required by Hubitat and OpenWeatherMap dashboards?", typeof: false, default: "false"],
+    "dashSmartTiles":           [title: "Dash - SmartTiles", descr: "Display attributes required by SmartTiles dashboards?", typeof: false, default: "false"],
+    "dashSharpTools":           [title: "Dash - SharpTools.io", descr: "Display attributes required by SharpTools.io?", typeof: false, default: "false"],
     "dewpoint":                 [title: "Dewpoint (in default unit)", descr: "Display the dewpoint?", typeof: "number", default: "false"],
+	"dsAttribution":    		[title: "Dark Sky Attribution", descr: "Display the 'Dark Sky attribution'?", typeof: false, default: "false"],    
     "fcstHighLow":              [title: "Forecast High/Low Temperatures:", descr: "Display forecast High/Low temperatures?", typeof: false, default: "false"],
 	"forecast_code":		    [title: "Forecast Code", descr: "Display 'forecast_code'?", typeof: "string", default: "false"],
 	"forecast_text":		    [title: "Forecast Text", descr: "Display 'forecast_text'?", typeof: "string", default: "false"],
