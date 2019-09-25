@@ -41,10 +41,10 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 09/24/2019
+   Last Update 09/25/2019
   { Left room below to document version changes...}
  
- 
+   V1.1.2 - Added 'wind_cardinal', more code optimization and cleanup                         - 09/25/2019 
    V1.1.1 - Corrected MoonPhase, optimized lux updates and code optimizations re-organized    - 09/24/2019
             preference order and some goupings of 'optional' attributes.
    V1.1.0 - Randomized schedule start times, Added 'Powered by DarkSky' attribution           - 09/18/2019
@@ -73,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.1.1"  }
+public static String version()      {  return "1.1.2"  }
 import groovy.transform.Field
 
 metadata {
@@ -186,8 +186,6 @@ def sunRiseSetHandler(resp, data) {
 		updateDataValue("sunRiseSet", resp.data)
         LOGINFO("Sunrise-Sunset Data: $sunRiseSet")
         setDateTimeFormats(datetimeFormat)
-        updateDataValue("currDate", new Date().format("yyyy-MM-dd", TimeZone.getDefault()))
-        updateDataValue("currTime", new Date().format("HH:mm", TimeZone.getDefault()))
 		updateDataValue("riseTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format("HH:mm", TimeZone.getDefault()))     
         updateDataValue("noonTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.solar_noon).format("HH:mm", TimeZone.getDefault()))
 		updateDataValue("setTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format("HH:mm", TimeZone.getDefault()))
@@ -195,16 +193,6 @@ def sunRiseSetHandler(resp, data) {
         updateDataValue("tw_end", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_end).format("HH:mm", TimeZone.getDefault()))
 		updateDataValue("localSunset",new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format(timeFormat, TimeZone.getDefault()))
 		updateDataValue("localSunrise", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format(timeFormat, TimeZone.getDefault()))
-	    if(getDataValue("riseTime") <= getDataValue("currTime") && getDataValue("setTime") >= getDataValue("currTime")) {
-            updateDataValue("is_day", "1")
-        } else {
-            updateDataValue("is_day", "0")
-        }
-        if(getDataValue("currTime") < getDataValue("tw_begin") || getDataValue("currTime") > getDataValue("tw_end")) {
-        	updateDataValue("is_light", "0")
-        } else {
-        	updateDataValue("is_light", "1")
-        }
     } else {
 		log.warn "DarkSky.net Weather Driver - Sunrise-Sunset api did not return data"
 	}
@@ -231,7 +219,7 @@ def pollDSHandler(resp, data) {
 	}
 }
 
-def doPollDS(Map ds) {
+void doPollDS(Map ds) {
 // <<<<<<<<<< Begin Setup Global Variables >>>>>>>>>>
     setDateTimeFormats(datetimeFormat)    
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
@@ -269,7 +257,9 @@ def doPollDS(Map ds) {
     updateDataValue("humidity", (Math.round(ds.currently.humidity.toBigDecimal() * 1000) / 10).toString())
     updateDataValue("pressure", (isPressureMetric ? (Math.round(ds.currently.pressure.toBigDecimal() * 10) / 10) : (Math.round(ds.currently.pressure.toBigDecimal() * 0.029529983071445 * 100) / 100)).toString())
     updateDataValue("temperature", (isFahrenheit ? (Math.round(ds.currently.temperature.toBigDecimal() * 10) / 10) : (Math.round((ds.currently.temperature.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
-    def tws = ds.currently.windSpeed.toBigDecimal()
+    String w_string_bft
+    String w_bft_icon
+    BigDecimal tws = ds.currently.windSpeed.toBigDecimal()
     if(tws < 1.0) {
         w_string_bft = "Calm"; w_bft_icon = 'wb0.png'
     }else if(tws < 4.0) {
@@ -302,7 +292,9 @@ def doPollDS(Map ds) {
     updateDataValue("wind", (isDistanceMetric ? (Math.round(ds.currently.windSpeed.toBigDecimal() * 1.609344 * 10) / 10) : (Math.round(ds.currently.windSpeed.toBigDecimal() * 10) / 10)).toString())
     updateDataValue("wind_gust", (isDistanceMetric ? (Math.round(ds.currently.windGust.toBigDecimal() * 1.609344 * 10) / 10) : (Math.round(ds.currently.windGust.toBigDecimal() * 10) / 10)).toString())
     updateDataValue("wind_degree", ds.currently.windBearing.toInteger().toString())	
-    twb = ds.currently.windBearing.toBigDecimal()
+    String w_cardinal
+    String w_direction
+    BigDecimal twb = ds.currently.windBearing.toBigDecimal()
     if(twb < 11.25) {
         w_cardinal = 'N'; w_direction = 'North'
     }else if(twb < 33.75) {
@@ -342,13 +334,15 @@ def doPollDS(Map ds) {
     updateDataValue("wind_cardinal", w_cardinal)	
     updateDataValue("wind_string", w_string_bft + " from the " + getDataValue("wind_direction") + (getDataValue("wind").toBigDecimal() < 1.0 ? '': " at " + getDataValue("wind") + (isDistanceMetric ? " KPH" : " MPH")))
     if(nearestStormPublish) {
+        String s_cardinal
+        String s_direction 
         if(!ds.currently.nearestStormBearing){
             updateDataValue("nearestStormBearing", "360")
             s_cardinal = 'U'
             s_direction = 'Unknown'        
         }else{
             updateDataValue("nearestStormBearing", (Math.round(ds.currently.nearestStormBearing * 10) / 10).toString())
-            tnsb = ds.currently.nearestStormBearing.toBigDecimal()
+            BigDecimal tnsb = ds.currently.nearestStormBearing.toBigDecimal()
             if(tnsb < 11.25) {
                 s_cardinal = 'N'; s_direction = 'North'
             }else if(tnsb < 33.75) {
@@ -392,7 +386,8 @@ def doPollDS(Map ds) {
 	updateDataValue("ozone", (Math.round(ds.currently.ozone.toBigDecimal() * 10 ) / 10).toString())
 
     if(moonPhasePublish){
-        tmnp = ds.daily.data[0].moonPhase.toBigDecimal() * 100
+        String mPhase
+        BigDecimal tmnp = ds.daily.data[0].moonPhase.toBigDecimal() * 100
         if (tmnp < 6.25) {mPhase = "New Moon"}
         else if (tmnp < 18.75) {mPhase = "Waxing Crescent"}
         else if (tmnp < 31.25) {mPhase = "First Quarter"}
@@ -405,13 +400,13 @@ def doPollDS(Map ds) {
         updateDataValue("moonPhase", mPhase)
     }
 // >>>>>>>>>> End Process Standard Weather-Station Variables (Regardless of Forecast Selection)  <<<<<<<<<<	
-	
+	int cloudCover = 1
     if (!ds.currently.cloudCover) {
         cloudCover = 1
     } else {
-        cloudCover = (ds.currently.cloudCover.toBigDecimal() <= 0.01) ? 1 : ds.currently.cloudCover.toBigDecimal() * 100
+        cloudCover = (ds.currently.cloudCover.toBigDecimal() <= 0.01) ? 1 : (ds.currently.cloudCover.toBigDecimal() * 100)
     }
-    updateDataValue("cloud", cloudCover.toInteger().toString())
+    updateDataValue("cloud", cloudCover.toString())
     if (!ds.alerts){
         updateDataValue("alert", "No current weather alerts for this area")
         updateDataValue("possAlert", "false")
@@ -421,7 +416,8 @@ def doPollDS(Map ds) {
     }
     updateDataValue("vis", (isDistanceMetric ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
     updateDataValue("percentPrecip", !ds.daily.data[0].precipProbability ? "1" : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger().toString())
-    tid = getDataValue("is_day")=="1"
+    boolean tid = getDataValue("is_day")=="1"
+    String c_code
     switch(ds.currently.icon) {
         case "clear-day": c_code = "sunny"; break;
         case "clear-night": c_code = "nt_clear"; break;
@@ -437,6 +433,7 @@ def doPollDS(Map ds) {
     }
     updateDataValue("condition_code", c_code)
     updateDataValue("condition_text", ds.currently.summary)
+    String f_code
     switch(ds.daily.data[0].icon){
         case "clear-day": f_code =  "sunny"; break;
         case "clear-night": f_code =  "nt_clear"; break;
@@ -465,7 +462,7 @@ def doPollDS(Map ds) {
 
 	// <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>    
     if(sourceImg==false){ // 'Alternative' Icons selected
-        imgName = (getDataValue("iconType")== 'true' ? getImgName(getDataValue("condition_code")) : getImgName(getDataValue("forecast_code"))) 
+        String imgName = (getDataValue("iconType")== 'true' ? getImgName(getDataValue("condition_code")) : getImgName(getDataValue("forecast_code"))) 
         sendEventPublish(name: "condition_icon", value: '<img src=' + imgName + '>')
         sendEventPublish(name: "condition_iconWithText", value: "<img src=" + imgName + "><br>" + (getDataValue("iconType")== 'true' ? getDataValue("condition_text") : getDataValue("forecast_text")))
         sendEventPublish(name: "condition_icon_url", value: imgName)
@@ -484,7 +481,7 @@ def doPollDS(Map ds) {
 // >>>>>>>>>> End DarkSky Poll Routines <<<<<<<<<<
 
 // >>>>>>>>>> Begin Lux Processing <<<<<<<<<<    
-def updateLux(boolean pollAgain=true) {
+void updateLux(boolean pollAgain=true) {
 	LOGINFO("UpdateLux")
 	if(pollAgain) {
 		String curTime = new Date().format("HH:mm", TimeZone.getDefault())
@@ -499,7 +496,7 @@ def updateLux(boolean pollAgain=true) {
 			return
 		}
 	}
-	def (lux, bwn) = estimateLux(getDataValue("condition_code"), getDataValue("cloud"))
+	def (lux, bwn) = estimateLux(getDataValue("condition_code"), getDataValue("cloud").toInteger())
 	updateDataValue("bwn", bwn)
 	updateDataValue("illuminance", !lux ? "0" : lux.toString())
 	updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
@@ -508,7 +505,7 @@ def updateLux(boolean pollAgain=true) {
 // >>>>>>>>>> End Lux Processing <<<<<<<<<<
 
 // <<<<<<<<<< Begin Post-Poll Routines >>>>>>>>>>
-def PostPoll() {
+void PostPoll() {
     def sunRiseSet = parseJson(getDataValue("sunRiseSet")).results
     setDateTimeFormats(datetimeFormat)
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)   
@@ -576,6 +573,7 @@ def PostPoll() {
     sendEventPublish(name: "vis", value: Math.round(getDataValue("vis").toBigDecimal() * 10) / 10, unit: (isDistanceMetric ? "kilometers" : "miles"))
     sendEventPublish(name: "wind_degree", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")
     sendEventPublish(name: "wind_direction", value: getDataValue("wind_direction"))    
+    sendEventPublish(name: "wind_cardinal", value: getDataValue("wind_cardinal"))
     sendEventPublish(name: "wind_gust", value: getDataValue("wind_gust").toBigDecimal(), unit: (isDistanceMetric ? 'KPH' : 'MPH'))
     sendEventPublish(name: "wind_string", value: getDataValue("wind_string"))
     if(nearestStormPublish) {
@@ -586,29 +584,30 @@ def PostPoll() {
     }
 	
 //  <<<<<<<<<< Begin Built Weather Summary text >>>>>>>>>> 
-    Summary_last_poll_time = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(timeFormat, TimeZone.getDefault())
-    Summary_last_poll_date = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(dateFormat, TimeZone.getDefault())
-    mtprecip = getDataValue("percentPrecip") + '%'
+    String Summary_last_poll_time = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(timeFormat, TimeZone.getDefault())
+    String Summary_last_poll_date = new Date().parse("EEE MMM dd HH:mm:ss z yyyy", getDataValue("futime")).format(dateFormat, TimeZone.getDefault())
+    String mtprecip = getDataValue("percentPrecip") + '%'
     if(weatherSummaryPublish){ // don't bother setting these values if it's not enabled
-		Summary_forecastTemp = " with a high of " + String.format("%3.1f", getDataValue("forecastHigh").toBigDecimal()) + (isFahrenheit ? '°F' : '°C') + " and a low of " + String.format("%3.1f", getDataValue("forecastLow").toBigDecimal()) + (isFahrenheit ? '°F. ' : '°C. ')
-		Summary_precip = "There is a " + getDataValue("percentPrecip") + "% chance of precipitation. "
-		Summary_vis = "Visibility is around " + String.format("%3.1f", getDataValue("vis").toBigDecimal()) + (isDistanceMetric ? " kilometers." : " miles. ")
+		String Summary_forecastTemp = " with a high of " + String.format("%3.1f", getDataValue("forecastHigh").toBigDecimal()) + (isFahrenheit ? '°F' : '°C') + " and a low of " + String.format("%3.1f", getDataValue("forecastLow").toBigDecimal()) + (isFahrenheit ? '°F. ' : '°C. ')
+		String Summary_precip = "There is a " + getDataValue("percentPrecip") + "% chance of precipitation. "
+		String Summary_vis = "Visibility is around " + String.format("%3.1f", getDataValue("vis").toBigDecimal()) + (isDistanceMetric ? " kilometers." : " miles.")
         SummaryMessage(summaryType, Summary_last_poll_date, Summary_last_poll_time, Summary_forecastTemp, Summary_precip, Summary_vis)
     }
 //  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<    
     
 //  <<<<<<<<<< Begin Built mytext >>>>>>>>>> 
     if(myTilePublish){ // don't bother setting these values if it's not enabled
-    	iconClose = (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "")
-        alertStyleOpen = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' :  '<span style=\"font-size:0.75em;line-height=75%;font-style:italic;\">')
-        alertStyleClose = ((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '</div>' : '</span></div>'
-        dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>'        
+    	String iconClose = (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "")
+        String alertStyleOpen = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' :  '<span style=\"font-size:0.75em;line-height=75%;font-style:italic;\">')
+        String alertStyleClose = ((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '</div>' : '</span></div>'
+        String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>'        
+        BigDecimal wgust
         if(getDataValue("wind_gust").toBigDecimal() < 1.0 ) {
             wgust = 0.0g
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
         }
-        mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '</div><br>'
+        String mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '</div><br>'
         mytext+= getDataValue("condition_text") + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' : ' | ') + alertStyleOpen + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' : getDataValue("alert")) + alertStyleClose + '<br>'
         mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + '<img style=\"height:2.0em\" src=' + getDataValue("condition_icon_url") + '>' + '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</span><br>'
         mytext+= '<div style=\"font-size:0.75em;line-height=50%;\">' + '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconClose + '>' + getDataValue("wind_direction") + " "
@@ -625,73 +624,79 @@ def PostPoll() {
 }
 // >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
 
-def updated()   {
-    state.clear()
-    unschedule()
-    updateCheck()
-    initialize()
-    runEvery5Minutes(updateLux)
-    runIn(5, pollDS)
-    if (settingEnable) runIn(2100,settingsOff)  // "roll up" (hide) the condition selectors after 35 min
-    if(settings.logSet) runIn(1800,logsOff)
+void updated()   {
+	unschedule()
+	updateCheck()
+	initialize()
+	runEvery5Minutes(updateLux)
+	Random rand = new Random(now())
+	int ssseconds = rand.nextInt(60)
+	schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
+	runIn(5, pollDS)
+	if (settingEnable) runIn(2100,settingsOff)// "roll up" (hide) the condition selectors after 35 min
+	if(settings.logSet) runIn(1800,logsOff)
+	int r_minutes = rand.nextInt(60)
+	schedule("0 ${r_minutes} 8 ? * FRI *", updateCheck)
 }
-def initialize() {
-    logSet = (settings?.logSet ?: false)
-    city = (settings?.city ?: "")
+void initialize() {
+    unschedule("pollDS")
+    boolean logSet = (settings?.logSet ?: false)
+    String city = (settings?.city ?: "")
     updateDataValue("city", !city ? "" : city)
-    pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours")
-    pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours")
-    dsIconbackgrounddark = (settings?.dsIconbackgrounddark ?: true)    
-    datetimeFormat = (settings?.datetimeFormat ?: 1).toInteger()
-    distanceFormat = (settings?.distanceFormat ?: "Miles (mph)")
-    pressureFormat = (settings?.pressureFormat ?: "Inches")
-    rainFormat = (settings?.rainFormat ?: "Inches")
-    tempFormat = (settings?.tempFormat ?: "Fahrenheit (°F)")
-	iconType = (settings?.iconType ?: false)
+    String pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours")
+    String pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours")
+    boolean dsIconbackgrounddark = (settings?.dsIconbackgrounddark ?: true)    
+    int datetimeFormat = (settings?.datetimeFormat ?: 1).toInteger()
+    String distanceFormat = (settings?.distanceFormat ?: "Miles (mph)")
+    String pressureFormat = (settings?.pressureFormat ?: "Inches")
+    String rainFormat = (settings?.rainFormat ?: "Inches")
+    String tempFormat = (settings?.tempFormat ?: "Fahrenheit (°F)")
+	boolean iconType = (settings?.iconType ?: false)
     updateDataValue("iconType", iconType ? 'true' : 'false')
-    sourceImg = (settings?.sourceImg ?: false)
-    summaryType = (settings?.summaryType ?: false)
-    iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
+    boolean sourceImg = (settings?.sourceImg ?: false)
+    boolean summaryType = (settings?.summaryType ?: false)
+    String iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
     state.DarkSky = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'poweredby-oneline.png style=\"height:1.5em\";></a>'
     setDateTimeFormats(datetimeFormat)
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
+    
     pollSunRiseSet()
-    Random rand = new Random(now())
-    ssseconds = rand.nextInt(60)
-    minutes2 = rand.nextInt(2)
-    minutes5 = rand.nextInt(5)
-    minutes10 = rand.nextInt(10)
-    minutes15 = rand.nextInt(15)
-    minutes30 = rand.nextInt(30)
-    minutes60 = rand.nextInt(60)
-    hours3 = rand.nextInt(3)
-    schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
-	schedule("0 ${ssseconds} 8 ? * FRI *", updateCheck)
-    if(ssseconds < 56 ){
-        dsseconds = ssseconds + 4
-    }else{
-        dsseconds = ssseconds - 60 + 4
-    }   
+
+	Random rand = new Random(now())
+	int ssseconds = rand.nextInt(60)
+	int minutes2 = rand.nextInt(2)
+	int minutes5 = rand.nextInt(5)
+	int minutes10 = rand.nextInt(10)
+	int minutes15 = rand.nextInt(15)
+	int minutes30 = rand.nextInt(30)
+	int minutes60 = rand.nextInt(60)
+	int hours3 = rand.nextInt(3)
+	int dsseconds
+	if(ssseconds < 56 ){
+		dsseconds = ssseconds + 4
+	}else{
+		dsseconds = ssseconds - 60 + 4
+	}
 	if(getDataValue("is_light")=="1") {
 		if(pollIntervalForecast == "Manual Poll Only"){
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
 		} else {
 			pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours").replace(" ", "")
-            if(pollIntervalForecast=='2Minutes'){
-                schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollDS)
-            }else if(pollIntervalForecast=='5Minutes'){
-                schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollDS)                
-            }else if(pollIntervalForecast=='10Minutes'){
-                schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollDS)                
-            }else if(pollIntervalForecast=='15Minutes'){
-                schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollDS)                
-            }else if(pollIntervalForecast=='30Minutes'){
-                schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollDS)                
-            }else if(pollIntervalForecast=='1Hour'){
-                schedule("${dsseconds} ${minutes60} * * * ? *", pollDS)                
-            }else if(pollIntervalForecast=='3Hours'){
-                schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollDS)                
+			if(pollIntervalForecast=='2Minutes'){
+				schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='5Minutes'){
+				schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='10Minutes'){
+				schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='15Minutes'){
+				schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='30Minutes'){
+				schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='1Hour'){
+				schedule("${dsseconds} ${minutes60} * * * ? *", pollDS)
+			}else if(pollIntervalForecast=='3Hours'){
+				schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollDS)
 			}
 		}
 	}else{
@@ -699,34 +704,33 @@ def initialize() {
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
 		} else {
 			pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours").replace(" ", "")
-            if(pollIntervalForecastnight=='2Minutes'){
-                schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollDS)
-            }else if(pollIntervalForecastnight=='5Minutes'){
-                schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollDS)                
-            }else if(pollIntervalForecastnight=='10Minutes'){
-                schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollDS)                
-            }else if(pollIntervalForecastnight=='15Minutes'){
-                schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollDS)                
-            }else if(pollIntervalForecastnight=='30Minutes'){
-                schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollDS)                
-            }else if(pollIntervalForecastnight=='1Hour'){
-                schedule("${dsseconds} ${minutes60} * * * ? *", pollDS)                
-            }else if(pollIntervalForecastnight=='3Hours'){
-                schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollDS)                
-            }
+			if(pollIntervalForecastnight=='2Minutes'){
+				schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='5Minutes'){
+				schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='10Minutes'){
+				schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='15Minutes'){
+				schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='30Minutes'){
+				schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='1Hour'){
+				schedule("${dsseconds} ${minutes60} * * * ? *", pollDS)
+			}else if(pollIntervalForecastnight=='3Hours'){
+				schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollDS)
+			}
 		}
 	}
-//	updateDataValue("is_lightOld", getDataValue("is_light"))
-    return
+	return
 }
 
-def pollData() {
+public void pollData() {
 	pollDS()
     return
 }
 // ************************************************************************************************
 
-public setDateTimeFormats(formatselector){
+public void setDateTimeFormats(formatselector){
     switch(formatselector) {
         case 1: DTFormat = "M/d/yyyy h:mm a";   dateFormat = "M/d/yyyy";   timeFormat = "h:mm a"; break;
         case 2: DTFormat = "M/d/yyyy HH:mm";    dateFormat = "M/d/yyyy";   timeFormat = "HH:mm";  break;
@@ -742,7 +746,7 @@ public setDateTimeFormats(formatselector){
     return
 }
 
-public setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFormat){
+public void setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFormat){
     isDistanceMetric = (distFormat == "Kilometers (kph)") ? true : false
     isPressureMetric = (pressFormat == "Millibar") ? true : false
     isRainMetric = (precipFormat == "Millimetres") ? true : false
@@ -751,24 +755,24 @@ public setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFormat)
 }
 
 def estimateLux(condition_code, cloud)     {	
-	def lux = 0l
-	def aFCC = true
+	long lux = 0l
+	boolean aFCC = true
 	def l
-	def bwn
+	String bwn
 	def sunRiseSet           = parseJson(getDataValue("sunRiseSet")).results
 	def tZ                   = TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
 	def lT                   = new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX", tZ)
-	def localeMillis         = getEpoch(lT)
-	def twilight_beginMillis = getEpoch(sunRiseSet.civil_twilight_begin)
-	def sunriseTimeMillis    = getEpoch(sunRiseSet.sunrise)
-	def noonTimeMillis       = getEpoch(sunRiseSet.solar_noon)
-	def sunsetTimeMillis     = getEpoch(sunRiseSet.sunset)
-	def twilight_endMillis   = getEpoch(sunRiseSet.civil_twilight_end)
-	def twiStartNextMillis   = twilight_beginMillis + 86400000 // = 24*60*60*1000 --> one day in milliseconds
-	def sunriseNextMillis    = sunriseTimeMillis + 86400000 
-	def noonTimeNextMillis   = noonTimeMillis + 86400000 
-	def sunsetNextMillis     = sunsetTimeMillis + 86400000
-	def twiEndNextMillis     = twilight_endMillis + 86400000
+	long localeMillis         = getEpoch(lT)
+	long twilight_beginMillis = getEpoch(sunRiseSet.civil_twilight_begin)
+	long sunriseTimeMillis    = getEpoch(sunRiseSet.sunrise)
+	long noonTimeMillis       = getEpoch(sunRiseSet.solar_noon)
+	long sunsetTimeMillis     = getEpoch(sunRiseSet.sunset)
+	long twilight_endMillis   = getEpoch(sunRiseSet.civil_twilight_end)
+	long twiStartNextMillis   = twilight_beginMillis + 86400000 // = 24*60*60*1000 --> one day in milliseconds
+	long sunriseNextMillis    = sunriseTimeMillis + 86400000 
+	long noonTimeNextMillis   = noonTimeMillis + 86400000 
+	long sunsetNextMillis     = sunsetTimeMillis + 86400000
+	long twiEndNextMillis     = twilight_endMillis + 86400000
 
 	switch(localeMillis) { 
 		case { it < twilight_beginMillis}: 
@@ -825,9 +829,9 @@ def estimateLux(condition_code, cloud)     {
 			aFCC = false
 			break
 	}
-
-	def cC = condition_code
-	def cCF = (!cloud || cloud=="") ? 0.998d : ((100 - (cloud.toInteger() / 3d)) / 100)
+    String cC = condition_code
+	String cCT = "not set"
+	double cCF = (!cloud || cloud=="") ? 0.998d : ((100 - (cloud.toInteger() / 3d)) / 100)
 
     if(aFCC){
         if(cloud !="" && cloud != null){
@@ -849,62 +853,64 @@ def estimateLux(condition_code, cloud)     {
 	return [lux, bwn]
 }
 
-def getEpoch (aTime) {
+private long getEpoch (String aTime) {
 	def tZ = TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
 	def localeTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", aTime, tZ)
 	long localeMillis = localeTime.getTime()
 	return (localeMillis)
 }
 
-public SummaryMessage(SType, Slast_poll_date, Slast_poll_time, SforecastTemp, Sprecip, Svis){   
+void SummaryMessage(SType, Slast_poll_date, Slast_poll_time, SforecastTemp, Sprecip, Svis){   
+    BigDecimal windgust
     if(getDataValue("wind_gust") == "" || getDataValue("wind_gust").toBigDecimal() < 1.0 || getDataValue("wind_gust")==null) {
-        wgust = 0.00g
+        windgust = 0.00g
     } else {
-        wgust = getDataValue("wind_gust").toBigDecimal()
+        windgust = getDataValue("wind_gust").toBigDecimal()
     }
-    dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>'    
+    String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>'    
+    String wSum = (String)null
     if(SType == true){
         wSum = "Weather summary for " + getDataValue("city") + " updated at ${Slast_poll_time} on ${Slast_poll_date}. "
         wSum+= getDataValue("condition_text")
         wSum+= (!SforecastTemp || SforecastTemp=="") ? ". " : "${SforecastTemp}"
         wSum+= "Humidity is " + getDataValue("humidity") + "% and the temperature is " + String.format("%3.1f", getDataValue("temperature").toBigDecimal()) +  (isFahrenheit ? '°F. ' : '°C. ')
         wSum+= "The temperature feels like it is " + String.format("%3.1f", getDataValue("feelsLike").toBigDecimal()) + (isFahrenheit ? '°F. ' : '°C. ')
-        wSum+= "Wind: " + getDataValue("wind_string") + ", gusts: " + ((wgust < 1.00) ? "calm. " : "up to " + wgust.toString() + (isDistanceMetric ? ' KPH. ' : ' MPH. '))
+        wSum+= "Wind: " + getDataValue("wind_string") + ", gusts: " + ((windgust < 1.00) ? "calm. " : "up to " + windgust.toString() + (isDistanceMetric ? ' KPH. ' : ' MPH. '))
         wSum+= Sprecip
         wSum+= Svis
-        wSum+= ((!getDataValue("alert") || getDataValue("alert")==null) ? "" : getDataValue("alert") + '. ') + dsIcon
+        wSum+= ((!getDataValue("alert") || getDataValue("alert")==null) ? "" : " " + getDataValue("alert") + '. ')
     } else {
         wSum = getDataValue("condition_text") + " "
         wSum+= ((!SforecastTemp || SforecastTemp=="") ? ". " : "${SforecastTemp}")
         wSum+= " Humidity: " + getDataValue("humidity") + "%. Temperature: " + String.format("%3.1f", getDataValue("temperature").toBigDecimal()) + (isFahrenheit ? '°F. ' : '°C. ')
-        wSum+= getDataValue("wind_string") + ", gusts: " + ((wgust == 0.00) ? "calm. " : "up to " + wgust + (isDistanceMetric ? ' KPH. ' : ' MPH. ')) + dsIcon
+        wSum+= getDataValue("wind_string") + ", gusts: " + ((windgust == 0.00) ? "calm. " : "up to " + windgust + (isDistanceMetric ? ' KPH. ' : ' MPH. '))
 	}
     sendEvent(name: "weatherSummary", value: wSum)
 	return
 }
 
-public getImgName(wCode){
+String getImgName(String wCode){
     LOGINFO("getImgName Input: wCode: " + wCode + "  state.is_day: " + getDataValue("is_day") + " iconLocation: " + getDataValue("iconLocation"))
     LUitem = LUTable.find{ it.wucode == wCode } //&& it.day.toString() == getDataValue("is_day") }    
 	LOGINFO("getImgName Result: image url: " + getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + "?raw=true")
     return (getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : ""))    
 }
-public getowmImgName(wCode){
+String getowmImgName(String wCode){
     LOGINFO("getImgName Input: wCode: " + wCode + "  state.is_day: " + getDataValue("is_day") + " iconLocation: " + getDataValue("iconLocation"))
     LUitem = LUTable.find{ it.wucode == wCode } //&& it.day.toString() == getDataValue("is_day") }    
 	LOGINFO("getImgName Result: image url: " + getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + "?raw=true")
     return (LUitem ? LUitem.owm : '')   
 }
-def logCheck(){
+void logCheck(){
     if(setting?.logSet == true){
         log.info "DarkSky.net Weather Driver - INFO:  All Logging Enabled"
-	} else {
+    } else {
         log.info "DarkSky.net Weather Driver - INFO:  Further Logging Disabled"
     }
     return
 }
 
-def LOGDEBUG(txt){
+void LOGDEBUG(txt){
     try {
     	if(settings?.logSet == true){ log.debug("DarkSky.net Weather Driver - DEBUG:  ${txt}") }
     } catch(ex) {
@@ -913,7 +919,7 @@ def LOGDEBUG(txt){
     return
 }
 
-def LOGINFO(txt){
+void LOGINFO(txt){
     try {
     	if(settings?.logSet == true){log.info("DarkSky.net Weather Driver - INFO:  ${txt}") }
     } catch(ex) {
@@ -922,17 +928,17 @@ def LOGINFO(txt){
     return
 }
 
-def logsOff(){
+void logsOff(){
 	log.warn "${device?.displayName} debug logging disabled..."
 	device.updateSetting("logSet",[value:"false",type:"bool"])
 }
 
-def settingsOff(){
+void settingsOff(){
 	log.warn "Settings disabled..."
 	device.updateSetting("settingEnable",[value:"false",type:"bool"])
 }
 
-def sendEventPublish(evt)	{
+void sendEventPublish(evt)	{
 // 	Purpose: Attribute sent to DB if selected	
     if (settings."${evt.name + "Publish"}") {
 		sendEvent(name: evt.name, value: evt.value, descriptionText: evt.descriptionText, unit: evt.unit, displayed: evt.displayed);
@@ -1022,8 +1028,8 @@ def updateCheckHandler(resp, data) {
 		// log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver 
 		state.Copyright = "${thisCopyright}"
 		// uses reformattted 'version2.json' 
-		def newVer = padVer(respUD.driver.(state.InternalName).ver)
-		def currentVer = padVer(version())               
+		String newVer = padVer(respUD.driver.(state.InternalName).ver)
+		String currentVer = padVer(version())               
 		state.UpdateInfo = (respUD.driver.(state.InternalName).updated)
             // log.debug "updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}"
 
@@ -1063,7 +1069,7 @@ def updateCheckHandler(resp, data) {
 
 */ 
 def padVer(ver) {
-	def pad = ""
+	String pad = ""
 	ver.replaceAll( "[vV]", "" ).split( /\./ ).each { pad += it.padLeft( 2, '0' ) }
 	return pad
 }
