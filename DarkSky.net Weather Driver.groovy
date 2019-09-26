@@ -41,9 +41,15 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 09/25/2019
+   Last Update 09/26/2019
   { Left room below to document version changes...}
  
+
+
+
+
+
+   V1.1.3   Corrected myTile for 'alert' condition                                            - 09/26/2019
    V1.1.2 - Added 'wind_cardinal', more code optimization and cleanup                         - 09/25/2019 
    V1.1.1 - Corrected MoonPhase, optimized lux updates and code optimizations re-organized    - 09/24/2019
             preference order and some goupings of 'optional' attributes.
@@ -73,7 +79,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.1.2"  }
+public static String version()      {  return "1.1.3"  }
 import groovy.transform.Field
 
 metadata {
@@ -140,7 +146,7 @@ metadata {
 
     preferences() {
 		section("Query Inputs"){
-			input "apiKey", "text", required: true, defaultValue: "Type DarkSky.net API Key Here", title: "API Key"
+			input "apiKey", "text", required: true, title: "Type DarkSky.net API Key Here", defaultValue: null
             input "city", "text", required: true, defaultValue: "City or Location name forecast area", title: "City name"
 			input "pollIntervalForecast", "enum", title: "External Source Poll Interval (daytime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
@@ -202,6 +208,10 @@ def sunRiseSetHandler(resp, data) {
 
 // <<<<<<<<<< Begin DarkSky Poll Routines >>>>>>>>>>
 def pollDS() {
+    if( apiKey == null ) {
+        log.error "DarkSky API Key not found.  Please configure in preferences."
+        return
+    }
 	def ParamsDS = [ uri: "https://api.darksky.net/forecast/${apiKey}/" + location.latitude + ',' + location.longitude + "?units=us&exclude=minutely,hourly,flags" ]
     LOGINFO("Poll DarkSky: $ParamsDS")
 	asynchttpGet("pollDSHandler", ParamsDS)
@@ -597,16 +607,17 @@ void PostPoll() {
     
 //  <<<<<<<<<< Begin Built mytext >>>>>>>>>> 
     if(myTilePublish){ // don't bother setting these values if it's not enabled
-    	String iconClose = (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "")
-        String alertStyleOpen = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' :  '<span style=\"font-size:0.75em;line-height=75%;font-style:italic;\">')
-        String alertStyleClose = ((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '</div>' : '</span></div>'
+        String iconClose = (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "")
+        boolean isAlert = (!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")
+        String alertStyleOpen = (isAlert ? '' :  '<span style=\"font-size:0.75em;line-height=75%;font-style:italic;\">')
+        String alertStyleClose = (isAlert ? '<br>' : '</span><br>')
         String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + ' style=\"height:1.5em\";></a>'        
         BigDecimal wgust
         if(getDataValue("wind_gust").toBigDecimal() < 1.0 ) {
             wgust = 0.0g
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
-        }
+        }        
         String mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '</div><br>'
         mytext+= getDataValue("condition_text") + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' : ' | ') + alertStyleOpen + (((!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")) ? '' : getDataValue("alert")) + alertStyleClose + '<br>'
         mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + '<img style=\"height:2.0em\" src=' + getDataValue("condition_icon_url") + '>' + '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</span><br>'
