@@ -46,7 +46,7 @@
  
 
 
-
+   V1.1.6   myTile 'display:inline' correction                                                - 09/27/2019
    V1.1.5   myTile enhancement for excessive length                                           - 09/27/2019
    V1.1.4   Prevent myTile from exceeding 1,024 characters                                    - 09/26/2019
    V1.1.3   Corrected myTile for 'alert' condition                                            - 09/26/2019
@@ -79,7 +79,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.1.5"  }
+public static String version()      {  return "1.1.6"  }
 import groovy.transform.Field
 
 metadata {
@@ -611,17 +611,17 @@ void PostPoll() {
         boolean noAlert = (!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")
         String alertStyleOpen = (noAlert ? '' :  '<span style=\"font-size:0.75em;line-height=75%;font-style:italic;\">')
         String alertStyleClose = (noAlert ? '<br>' : '</span><br>')
-        String dsIcon = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\"><a href=\"https://darksky.net/poweredby/\"><img style=\"height:1.5em\"; src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + '></a></div>'        
+        String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img style=\"height:1.5em\"; src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'poweredby-oneline.png' : 'poweredby-oneline-darkbackground.png') + '></a></div>'        
         BigDecimal wgust
         if(getDataValue("wind_gust").toBigDecimal() < 1.0 ) {
             wgust = 0.0g
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
         }        
-        String mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '</div><br>'
+        String mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '<br>'
         mytext+= getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alert")) + alertStyleClose + '<br>'
         mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + '<img style=\"height:2.0em\" src=' + getDataValue("condition_icon_url") + '>'
-        mytext+= '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</span><br>'
+        mytext+= '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '<br>'
         mytext+= '<div style=\"font-size:0.75em;line-height=50%;\">' + '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconClose + '>' + getDataValue("wind_direction") + " "
         mytext+= getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + (isDistanceMetric ? ' KPH' : ' MPH')
         mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + wgust.toString() + (isDistanceMetric ? ' KPH' : ' MPH')) + '<br>'
@@ -629,9 +629,11 @@ void PostPoll() {
         mytext+= (isPressureMetric ? ' mbar' : ' inHg') + '  <img src=' + getDataValue("iconLocation") + 'wh.png' + iconClose + '>' + getDataValue("humidity") + '%  ' + '<img src=' 
         mytext+= getDataValue("iconLocation") + 'wu.png' + iconClose + '>' + getDataValue("percentPrecip") + '%<br>'
         mytext+= '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconClose + '>' + getDataValue("localSunrise") + '     <img src=' + getDataValue("iconLocation") + 'wss.png' + iconClose + '>'
-        mytext+= getDataValue("localSunset") + '     Updated: ' + Summary_last_poll_time + '</div>'
+        mytext+= getDataValue("localSunset") + '     Updated: ' + Summary_last_poll_time + '</span>'
         if((mytext.length() + dsIcon.length()) < 1025) {
             mytext+= dsIcon
+        }else{
+            mytext+= '</div>'
         }
         if(mytext.length() > 1024) {
             int iconfilepath = ('<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconClose + '>').length()
@@ -656,10 +658,10 @@ void PostPoll() {
             }
             if(removeicons < 8) {
                 log.info "myTile exceeds 1,024 characters (" + mytext.length() + ") ... removing last " + (removeicons + 1).toString() + " icons."            
-                mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '</div><br>'
+                mytext = '<div style=\"display:inline;margin-top:0em;margin-bottom:0em;float:center;\">' + getDataValue("city") + '<br>'
                 mytext+= getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alert")) + alertStyleClose + '<br>'
                 mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + (removeicons < 7 ? '<img style=\"height:2.0em\" src='  + getDataValue("condition_icon_url") + '>' : '') 
-                mytext+= '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</span><br>'
+                mytext+= '<span style= \"font-size:.75em;\"> Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '<br>'
                 mytext+= '<div style=\"font-size:0.75em;line-height=50%;\">' 
                 mytext+= (removeicons < 6 ? '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconClose + '>' : '') + getDataValue("wind_direction") + " "
                 mytext+= getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + (isDistanceMetric ? ' KPH' : ' MPH')
@@ -669,7 +671,7 @@ void PostPoll() {
                 mytext+= (removeicons < 3 ? '<img src=' + getDataValue("iconLocation") + 'wu.png' + iconClose + '>' : ' | Precip%: ') + getDataValue("percentPrecip") + '%<br>'
                 mytext+= (removeicons < 2 ? '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconClose + '>' : 'Sunrise: ') + getDataValue("localSunrise") + '  '
                 mytext+= (removeicons < 1 ? '<img src=' + getDataValue("iconLocation") + 'wss.png' + iconClose + '>' : ' | Sunset: ') + getDataValue("localSunset")
-                mytext+= '     Updated ' + Summary_last_poll_time + '</div>'
+                mytext+= '     Updated ' + Summary_last_poll_time + '</span></div>'
             }else{
                 log.info "myTile still exceeds 1,024 characters (" + mytext.length() + ") ... removing all formatting."
                 mytext = getDataValue("city") + '<br>'
