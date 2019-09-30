@@ -14,6 +14,7 @@
    - @bangali also contributed the icon work from
      https://github.com/jebbett for new cooler 'Alternative' weather icons with icons courtesy
      of https://www.deviantart.com/vclouds/art/VClouds-Weather-Icons-179152045.
+    - @storageanarchy for his Dark Sky Icon mapping and some new icons to compliment the Vclouds set.
  
    In addition to all the cloned code from the Hubitat community, I have heavily modified/created new
    code myself @Matthew (Scottma61) with lots of help from the Hubitat community.  If you believe you
@@ -41,12 +42,12 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 09/29/2019
+   Last Update 09/30/2019
   { Left room below to document version changes...}
  
 
 
-
+   V1.2.0   Eliminated 'Std' Icons.  Reworked condition_code/condition_text.                  - 09/30/2019
    V1.1.9   myTile format tweaking                                                            - 09/29/2019
    V1.1.8   Bug fixes, optimizations, Added 'wind' and lux jitter control                     - 09/28/2019
    V1.1.7   More myTile 'display:inline' corrections                                          - 09/28/2019
@@ -83,7 +84,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.1.9"  }
+public static String version()      {  return "1.2.0"  }
 import groovy.transform.Field
 
 metadata {
@@ -163,7 +164,6 @@ metadata {
             input "pressureFormat", "enum", required: true, defaultValue: "Inches", title: "Display Unit - Pressure: Inches or Millibar",  options: ["Inches", "Millibar"]
             input "rainFormat", "enum", required: true, defaultValue: "Inches", title: "Display Unit - Precipitation: Inches or Millimetres",  options: ["Inches", "Millimetres"]
             input "luxjitter", "bool", title: "Use lux jitter control (rounding)?", required: true, defaultValue: false
-			input "sourceImg", "bool", required: true, defaultValue: false, title: "Icons from: On = Standard - Off = Alternative"
 			input "iconLocation", "text", required: true, defaultValue: "https://tinyurl.com/y6xrbhpf/", title: "Alternative Icon Location:"
             input "iconType", "bool", title: "Condition Icon: On = Current - Off = Forecast", required: true, defaultValue: false
             input "dsIconbackgrounddark", "bool", required: true, defaultValue: false, title: "DarkSky logo text color for myTile/weatherSummary: On = Dark  -  Off = Light"                        
@@ -231,7 +231,7 @@ void pollDS() {
 void pollDSHandler(resp, data) {
     log.info "DarkSky.net Weather Driver - INFO: Polling DarkSky.net"
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-        ds = parseJson(resp.data)
+        def ds = parseJson(resp.data)
 		doPollDS(ds)		// parse the data returned by DarkSky
 	} else {
 		log.error "DarkSky.net Weather Driver - DarkSky weather api did not return data"
@@ -430,39 +430,15 @@ void doPollDS(Map ds) {
     }
     updateDataValue("vis", (isDistanceMetric ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
     updateDataValue("percentPrecip", !ds.daily.data[0].precipProbability ? "1" : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger().toString())
-    boolean tid = getDataValue("is_day")=="1"
-    String c_code
-    switch(ds.currently.icon) {
-        case "clear-day": c_code = "sunny"; break;
-        case "clear-night": c_code = "nt_clear"; break;
-        case "rain": c_code = (tid ? "rain" : "nt_rain"); break;
-        case "wind": c_code = (tid ? "breezy" : "nt_breezy"); break;
-        case "snow": c_code = (tid ? "snow" : "nt_snow"); break;
-        case "sleet": c_code = (tid ? "sleet" : "nt_sleet"); break;
-        case "fog": c_code = (tid ? "fog" : "nt_fog"); break;
-        case "cloudy": c_code = (tid ? "cloudy" : "nt_cloudy"); break;
-        case "partly-cloudy-day": c_code = "partlycloudy"; break;
-        case "partly-cloudy-night": c_code = "nt_partlycloudy"; break;
-        default: c_code = "unknown"; break;
-    }
+
+    String c_code = getdsIconCode(ds?.currently?.icon, ds?.currently?.summary)
     updateDataValue("condition_code", c_code)
-    updateDataValue("condition_text", ds.currently.summary)
-    String f_code
-    switch(ds.daily.data[0].icon){
-        case "clear-day": f_code =  "sunny"; break;
-        case "clear-night": f_code =  "nt_clear"; break;
-        case "rain": f_code = (tid ? "rain" : "nt_rain"); break;
-        case "wind": f_code = (tid ? "breezy" : "nt_breezy"); break;
-        case "snow": f_code = (tid ? "snow" : "nt_snow"); break;
-        case "sleet": f_code = (tid ? "sleet" : "nt_sleet"); break;
-        case "fog": f_code = (tid ? "fog" : "nt_fog"); break;
-        case "cloudy": f_code = (tid ? "cloudy" : "nt_cloudy"); break;
-        case "partly-cloudy-day": f_code = "partlycloudy"; break;
-        case "partly-cloudy-night": f_code = "nt_partlycloudy"; break;
-        default: f_code = "unknown"; break;
-    }
+    updateDataValue("condition_text", getcondText(c_code))    
+
+    String f_code = getdsIconCode(ds?.daily?.data[0]?.icon, ds?.daily?.data[0]?.summary)
     updateDataValue("forecast_code", f_code)
-    updateDataValue("forecast_text", ds.daily.data[0].summary)
+    updateDataValue("forecast_text", getcondText(f_code))
+
     updateDataValue("forecastHigh", (isFahrenheit ? (Math.round(ds.daily.data[0].temperatureHigh.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureHigh.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
     updateDataValue("forecastLow", (isFahrenheit ? (Math.round(ds.daily.data[0].temperatureLow.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureLow.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
     if(precipExtendedPublish){
@@ -475,20 +451,13 @@ void doPollDS(Map ds) {
 // >>>>>>>>>> End Setup Forecast Variables <<<<<<<<<<
 
 	// <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>    
-    if(sourceImg==false){ // 'Alternative' Icons selected
-        String imgName = (getDataValue("iconType")== 'true' ? getImgName(getDataValue("condition_code")) : getImgName(getDataValue("forecast_code"))) 
-        sendEventPublish(name: "condition_icon", value: '<img src=' + imgName + '>')
-        sendEventPublish(name: "condition_iconWithText", value: "<img src=" + imgName + "><br>" + (getDataValue("iconType")== 'true' ? getDataValue("condition_text") : getDataValue("forecast_text")))
-        sendEventPublish(name: "condition_icon_url", value: imgName)
-        updateDataValue("condition_icon_url", imgName)
-        sendEventPublish(name: "condition_icon_only", value: imgName.split("/")[-1].replaceFirst("\\?raw=true",""))
-    } else if(sourceImg==true) { // 'Standard Icons selected
-        sendEventPublish(name: "condition_icon", value: '<img src=https://icons.wxug.com/i/c/a/' + (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) + '.gif>')
-        sendEventPublish(name: "condition_iconWithText", value: '<img src=https://icons.wxug.com/i/c/a/' + (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) + '.gif><br>' + (getDataValue("iconType")== 'true' ? getDataValue("condition_text") : getDataValue("forecast_text")))
-        sendEventPublish(name: "condition_icon_url", value: 'https://icons.wxug.com/i/c/a/' + (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) +'.gif')
-        updateDataValue("condition_icon_url", 'https://icons.wxug.com/i/c/a/' + (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) +'.gif')
-        sendEventPublish(name: "condition_icon_only", value: (getDataValue("iconType")== 'true' ? getDataValue("condition_code") : getDataValue("forecast_code")) +'.gif')
-    }
+//    if(sourceImg==false){ // 'Alternative' Icons selected
+    String imgName = (getDataValue("iconType")== 'true' ? getImgName(getDataValue("condition_code")) : getImgName(getDataValue("forecast_code"))) 
+    sendEventPublish(name: "condition_icon", value: '<img src=' + imgName + '>')
+    sendEventPublish(name: "condition_iconWithText", value: "<img src=" + imgName + "><br>" + (getDataValue("iconType")== 'true' ? getDataValue("condition_text") : getDataValue("forecast_text")))
+    sendEventPublish(name: "condition_icon_url", value: imgName)
+    updateDataValue("condition_icon_url", imgName)
+    sendEventPublish(name: "condition_icon_only", value: imgName.split("/")[-1].replaceFirst("\\?raw=true",""))
 // >>>>>>>>>> End Icon Processing <<<<<<<<<<    
     PostPoll()
 }
@@ -517,6 +486,100 @@ void updateLux(boolean pollAgain=true) {
 	if(pollAgain) PostPoll()
 }
 // >>>>>>>>>> End Lux Processing <<<<<<<<<<
+// <<<<<<<<<< Begin Icon and condition_code, condition_text processing >>>>>>>>>>
+String getdsIconCode(String icon='unknown', String dcs='unknown') {
+	switch(icon) {
+		case 'rain':
+		// rain=[Possible Light Rain, Light Rain, Rain, Heavy Rain, Drizzle, Light Rain and Breezy, Light Rain and Windy, 
+		//       Rain and Breezy, Rain and Windy, Heavy Rain and Breezy, Rain and Dangerously Windy, Light Rain and Dangerously Windy],
+			if (dcs == 'Drizzle') {
+				icon = 'drizzle'
+			} else if 	(dcs.startsWith('Light Rain')) { 
+				icon = 'lightrain'
+				if 		(dcs.contains('Breezy')) icon += 'breezy'
+				else if (dcs.contains('Windy'))  icon += 'windy'
+			} else if 	(dcs.startsWith('Heavy Rain')) {
+				icon = 'heavyrain'
+				if 		(dcs.contains('Breezy')) icon += 'breezy'
+				else if (dcs.contains('Windy'))  icon += 'windy'
+			} else if 	(dcs == 'Possible Light Rain') {
+				icon = 'chancelightrain'
+			} else if 	(dcs.startsWith('Possible')) {
+				icon = 'chancerain'
+			} else if 	(dcs.startsWith('Rain')) {
+				if 		(dcs.contains('Breezy')) icon += 'breezy'
+				else if (dcs.contains('Windy'))  icon += 'windy'
+			}
+			break;
+		case 'snow':
+			if      (dcs == 'Light Snow') icon = 'lightsnow'
+			else if (dcs == 'Flurries') icon = 'flurries'
+			else if (dcs == 'Possible Light Snow') icon = 'chancelightsnow'
+			else if (dcs.startsWith('Possible Light Snow')) {
+				if      (dcs.contains('Breezy')) icon = 'chancelightsnowbreezy'
+				else if (dcs.contains('Windy')) icon = 'chancelightsnowwindy'
+			} else if (dcs.startsWith('Possible')) icon = 'chancesnow'
+			break;
+		case 'sleet':
+			if (dcs.startsWith('Possible')) icon = 'chancesleet'
+			else if (dcs.startsWith('Light')) icon = 'lightsleet'
+			break;
+		case 'thunderstorm':
+			if (dcs.startsWith('Possible')) icon = 'chancetstorms'
+			break;
+		case 'partly-cloudy-night':
+			if (dcs.contains('Mostly Cloudy')) icon = 'mostlycloudy'
+			else icon = 'partlycloudy'
+			break;
+		case 'partly-cloudy-day':
+			if (dcs.contains('Mostly Cloudy')) icon = 'mostlycloudy'
+			else icon = 'partlycloudy'
+			break;
+		case 'cloudy-night':
+			icon = 'cloudy'
+			break;
+		case 'cloudy':
+		case 'cloudy-day':
+			icon = 'cloudy'
+			break;
+		case 'clear-night':
+			icon = 'clear'
+			break;
+		case 'clear':
+		case 'clear-day':
+			icon = 'clear'
+			break;
+        case 'fog':
+			icon = 'fog'
+			break;
+		case 'wind':
+			// wind=[Windy and Overcast, Windy and Mostly Cloudy, Windy and Partly Cloudy, Breezy and Mostly Cloudy, Breezy and Partly Cloudy, 
+			// Breezy and Overcast, Breezy, Windy, Dangerously Windy and Overcast, Windy and Foggy, Dangerously Windy and Partly Cloudy, Breezy and Foggy]}
+			if (dcs.contains('Windy')) {
+				// icon = 'wind'
+				if 		(dcs.contains('Overcast')) 	  icon = 'windovercast'
+				else if (dcs.contains('Mostly Cloudy')) icon = 'windmostlycloudy'
+				else if (dcs.contains('Partly Cloudy')) icon = 'windpartlycloudy'
+				else if (dcs.contains('Foggy'))		  icon = 'windfoggy'
+			} else if (dcs.contains('Breezy')) {
+				icon = 'breezy'
+				if 		(dcs.contains('Overcast')) 	  icon = 'breezyovercast'
+				else if (dcs.summary.contains('Mostly Cloudy')) icon = 'breezymostlycloudy'
+				else if (dcs.contains('Partly Cloudy')) icon = 'breezypartlycloudy'
+				else if (dcs.contains('Foggy')) 		  icon = 'breezyfoggy'
+			}
+			break;
+		case '':
+			icon = 'unknown'
+			break;
+		default:
+			icon = 'unknown'
+	}
+    boolean isNight = getDataValue("is_day")=="false"
+	if(isNight) icon = 'nt_' + icon
+    return icon
+}
+// >>>>>>>>>> End Icon and condition_code, condition_text processing <<<<<<<<<<
 
 // <<<<<<<<<< Begin Post-Poll Routines >>>>>>>>>>
 void PostPoll() {
@@ -625,11 +688,11 @@ void PostPoll() {
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
         }        
-        String mytext = '<div style=\"float:center;\">' + getDataValue("city") + '<br>'        
+        String mytext = '<span>' + getDataValue("city") + '<br>'        
         mytext+= getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alert")) + alertStyleClose
         mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + '<img src=' + getDataValue("condition_icon_url") + iconClose + ' style=\"height:2.2em;display:inline;\">'
-        mytext+= ' Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</div>'
-        mytext+= '<div style=\"float:center;font-size:.8em;\"><img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled + getDataValue("wind_direction") + " "
+        mytext+= ' Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '<br></span>'
+        mytext+= '<span style=\"font-size:.8em;\"><img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled + getDataValue("wind_direction") + " "
         mytext+= getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + (isDistanceMetric ? ' KPH' : ' MPH')
         mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + wgust.toString() + (isDistanceMetric ? ' KPH' : ' MPH')) + '<br>'
         mytext+= '<img src=' + getDataValue("iconLocation") + 'wb.png' + iconCloseStyled + String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) + (isPressureMetric ? ' mbar' : ' inHg') + '     <img src=' + getDataValue("iconLocation") + 'wh.png' + iconCloseStyled
@@ -637,12 +700,12 @@ void PostPoll() {
         mytext+= '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconCloseStyled + getDataValue("localSunrise") + '     <img src=' + getDataValue("iconLocation") + 'wss.png' + iconCloseStyled
         mytext+= getDataValue("localSunset") + '     Updated: ' + Summary_last_poll_time
         if((mytext.length() + dsIcon.length() + 10) < 1025) {
-            mytext+= '<br>' + dsIcon + '</div>'
+            mytext+= '<br>' + dsIcon + '</span>'
         }else{
             if((mytext.length() + dsText.length() + 10) < 1025) {
-                mytext+= '<br>' + dsText + '</div>'
+                mytext+= '<br>' + dsText + '</span>'
             }else{
-                mytext+= '<br>Powered by Dark Sky</div>'
+                mytext+= '<br>Powered by Dark Sky</span>'
             }
         }
         if(mytext.length() > 1024) {
@@ -669,11 +732,11 @@ void PostPoll() {
             }
             if(removeicons < 8) {
                 LOGDEBUG("myTile exceeds 1,024 characters (" + mytext.length() + ") ... removing last " + (removeicons + 1).toString() + " icons.")
-                mytext = '<div style=\"float:center;\">' + getDataValue("city") + '<br>'
+                mytext = '<span>' + getDataValue("city") + '<br>'
                 mytext+= getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alert")) + alertStyleClose + '<br>'
                 mytext+= getDataValue("temperature") + (isFahrenheit ? '°F ' : '°C ') + (removeicons < 7 ? '<img src=' + getDataValue("condition_icon_url") + iconClose + ' style=\"height:2.0em;display:inline;\">' : '') 
-                mytext+= ' Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '</div>'
-                mytext+= '<div style=\"float:center;font-size:.8em;\">' + (removeicons < (raintoday ? 7 : 6) ? '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled : '') + getDataValue("wind_direction") + " "
+                mytext+= ' Feels like ' + getDataValue("feelsLike") + (isFahrenheit ? '°F' : '°C') + '<br></span>'
+                mytext+= '<span style=\"font-size:.8em;\">' + (removeicons < (raintoday ? 7 : 6) ? '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled : '') + getDataValue("wind_direction") + " "
                 mytext+= (removeicons < 6 ? '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled : '') + getDataValue("wind_direction") + " "
                 mytext+= getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + (isDistanceMetric ? ' KPH' : ' MPH')
                 mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + wgust.toString() + (isDistanceMetric ? ' KPH' : ' MPH')) + '<br>'
@@ -682,7 +745,7 @@ void PostPoll() {
                 mytext+= (removeicons < 3 ? '<img src=' + getDataValue("iconLocation") + 'wu.png' + iconCloseStyled : ' | Precip%: ') + getDataValue("percentPrecip") + '%<br>'
                 mytext+= (removeicons < 2 ? '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + getDataValue("localSunrise") + '  '
                 mytext+= (removeicons < 1 ? '<img src=' + getDataValue("iconLocation") + 'wss.png' + iconCloseStyled : ' | Sunset: ') + getDataValue("localSunset")
-                mytext+= '     Updated ' + Summary_last_poll_time + '</div>'
+                mytext+= '     Updated ' + Summary_last_poll_time + '</span>'
             }else{
                 LOGINFO("myTile still exceeds 1,024 characters (" + mytext.length() + ") ... removing all formatting.")
                 mytext = getDataValue("city") + '<br>'
@@ -737,10 +800,9 @@ void initialize() {
     String pressureFormat = (settings?.pressureFormat ?: "Inches")
     String rainFormat = (settings?.rainFormat ?: "Inches")
     String tempFormat = (settings?.tempFormat ?: "Fahrenheit (°F)")
-    boolean luxjitter = (setting?.luxjitter ?: false)
+    boolean luxjitter = (settings?.luxjitter ?: false)
 	boolean iconType = (settings?.iconType ?: false)
     updateDataValue("iconType", iconType ? 'true' : 'false')
-    boolean sourceImg = (settings?.sourceImg ?: false)
     boolean summaryType = (settings?.summaryType ?: false)
     String iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
@@ -922,10 +984,10 @@ def estimateLux(String condition_code, int cloud)     {
 
     if(aFCC){
         if(cloud){
-			LUitem = LUTable.find{ it.wucode == condition_code && it.day == 1 }            
+			LUitem = LUTable.find{ it.ccode == condition_code }            
 			if (LUitem && (condition_code != "unknown"))    {
 				cCF = (LUitem ? LUitem.luxpercent : 0)
-				cCT = (LUitem ? LUitem.wuphrase : 'unknown') + ' using cloud cover.'
+				cCT = (LUitem ? LUitem.ctext : 'unknown') + ' using cloud cover.'
             } else    {
                 cCF = 1.0
 		        cCT = 'cloud not available now.'
@@ -990,17 +1052,22 @@ void SummaryMessage(boolean SType, String Slast_poll_date, String Slast_poll_tim
 }
 
 String getImgName(String wCode){
-    LOGINFO("getImgName Input: wCode: " + wCode + "  state.is_day: " + getDataValue("is_day") + " iconLocation: " + getDataValue("iconLocation"))
-    LUitem = LUTable.find{ it.wucode == wCode } //&& it.day.toString() == getDataValue("is_day") }    
-	LOGINFO("getImgName Result: image url: " + getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + "?raw=true")
-    return (getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : ""))    
+    LOGINFO("getImgName Input: wCode: " + wCode)
+    LUitem = LUTable.find{ it.ccode == wCode }
+	LOGINFO("getImgName Result: image url: " + getDataValue("iconLocation") + (LUitem ? LUitem.altIcon : 'na.png') + "?raw=true")
+    return (getDataValue("iconLocation") + (LUitem ? LUitem.altIcon : 'na.png') + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : ""))    
 }
 String getowmImgName(String wCode){
-    LOGINFO("getImgName Input: wCode: " + wCode + "  state.is_day: " + getDataValue("is_day") + " iconLocation: " + getDataValue("iconLocation"))
-    LUitem = LUTable.find{ it.wucode == wCode } //&& it.day.toString() == getDataValue("is_day") }    
-	LOGINFO("getImgName Result: image url: " + getDataValue("iconLocation") + (LUitem ? LUitem.img : 'na.png') + "?raw=true")
-    return (LUitem ? LUitem.owm : '')   
+    LOGINFO("getImgName Input: wCode: " + wCode + " iconLocation: " + getDataValue("iconLocation"))
+    LUitem = LUTable.find{ it.ccode == wCode }
+    return (LUitem ? LUitem.owmIcon : '')   
 }
+String getcondText(String wCode){
+    LOGINFO("getImgName Input: wCode: " + wCode)
+    LUitem = LUTable.find{ it.ccode == wCode }
+    return (LUitem ? LUitem.ctext : '')   
+}
+
 void logCheck(){
     if(settings?.logSet == true){
         log.info "DarkSky.net Weather Driver - INFO:  All Logging Enabled"
@@ -1039,31 +1106,85 @@ void sendEventPublish(evt)	{
 }
 
 @Field final List    LUTable =     [
-[wucode: 'breezy', day: 1, img: '23.png', luxpercent: 1, owm: '02d'],
-[wucode: 'chancesnow', day: 1, img: '41.png', luxpercent: 0.3, owm: '13d'],
-[wucode: 'chancetstorms', day: 1, img: '37.png', luxpercent: 0.2, owm: '11d'],
-[wucode: 'clear', day: 1, img: '32.png', luxpercent: 1, owm: '01d'],
-[wucode: 'cloudy', day: 1, img: '28.png', luxpercent: 0.6, owm: '04d'],
-[wucode: 'fog', day: 1, img: '19.png', luxpercent: 0.2, owm: '50d'],
-[wucode: 'hazy', day: 1, img: '20.png', luxpercent: 0.2, owm: '50d'],
-[wucode: 'partlycloudy', day: 1, img: '30.png', luxpercent: 0.8, owm: '02d'],
-[wucode: 'rain', day: 1, img: '39.png', luxpercent: 0.5, owm: '10d'],
-[wucode: 'sleet', day: 1, img: '8.png', luxpercent: 0.4, owm: '13d'],
-[wucode: 'snow', day: 1, img: '16.png', luxpercent: 0.3, owm: '13d'],
-[wucode: 'sunny', day: 1, img: '36.png', luxpercent: 1, owm: '01d'],
-[wucode: 'tstorms', day: 1, img: '3.png', luxpercent: 0.3, owm: '11d'],
-[wucode: 'nt_breezy', day: 0, img: '24.png', luxpercent: 0, owm: '02n'],
-[wucode: 'nt_chancesnow', day: 0, img: '46.png', luxpercent: 0, owm: '13n'],
-[wucode: 'nt_chancetstorms', day: 0, img: '47.png', luxpercent: 0, owm: '11n'],
-[wucode: 'nt_clear', day: 0, img: '31.png', luxpercent: 0, owm: '01n'],
-[wucode: 'nt_cloudy', day: 0, img: '27.png', luxpercent: 0, owm: '04n'],
-[wucode: 'nt_fog', day: 0, img: '22.png', luxpercent: 0, owm: '50n'],
-[wucode: 'nt_hazy', day: 0, img: '21.png', luxpercent: 0, owm: '50n'],
-[wucode: 'nt_partlycloudy', day: 0, img: '29.png', luxpercent: 0, owm: '02n'],
-[wucode: 'nt_rain', day: 0, img: '45.png', luxpercent: 0, owm: '10n'],
-[wucode: 'nt_sleet', day: 0, img: '18.png', luxpercent: 0, owm: '13n'],
-[wucode: 'nt_snow', day: 0, img: '7.png', luxpercent: 0, owm: '13n'],
-[wucode: 'nt_tstorms', day: 0, img: '38.png', luxpercent: 0, owm: '11n'],
+[ ccode: 'breezy', altIcon: '23.png', ctext: 'Breezy', owmIcon: '50d', stdIcon: 'partlycloudy', luxpercent: 0.8 ],
+[ ccode: 'breezyfoggy', altIcon: '48.png', ctext: 'Breezy and Foggy', owmIcon: '50d', stdIcon: 'fog', luxpercent: 0.2 ],
+[ ccode: 'breezymostlycloudy', altIcon: '51.png', ctext: 'Breezy and Mostly Cloudy', owmIcon: '04d', stdIcon: 'mostlycloudy', luxpercent: 0.6 ],
+[ ccode: 'breezyovercast', altIcon: '49.png', ctext: 'Breezy and Overcast', owmIcon: '04d', stdIcon: 'mostlycloudy', luxpercent: 0.6 ],
+[ ccode: 'breezypartlycloudy', altIcon: '53.png', ctext: 'Breezy and Partly Cloudy', owmIcon: '03d', stdIcon: 'partlycloudy', luxpercent: 0.8 ],
+[ ccode: 'chancelightrain', altIcon: '39.png', ctext: 'Chance of Light Rain', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'chancelightsnow', altIcon: '41.png', ctext: 'Possible Light Snow', owmIcon: '13d', stdIcon: 'snow', luxpercent: 0.3 ],
+[ ccode: 'chancelightsnowbreezy', altIcon: '54.png', ctext: 'Possible Light Snow and Breezy', owmIcon: '13d', stdIcon: 'snow', luxpercent: 0.3 ],
+[ ccode: 'chancerain', altIcon: '39.png', ctext: 'Chance of Rain', owmIcon: '10d', stdIcon: 'chancerain', luxpercent: 0.7 ],
+[ ccode: 'chancesleet', altIcon: '41.png', ctext: 'Chance of Sleet', owmIcon: '13d', stdIcon: 'chancesleet', luxpercent: 0.7 ],
+[ ccode: 'chancesnow', altIcon: '41.png', ctext: 'Chance of Snow', owmIcon: '13d', stdIcon: 'chancesnow', luxpercent: 0.3 ],
+[ ccode: 'chancetstorms', altIcon: '38.png', ctext: 'Chance of Thunderstorms', owmIcon: '11d', stdIcon: 'chancetstorms', luxpercent: 0.2 ],
+[ ccode: 'chancelightsnowwindy', altIcon: '54.png', ctext: 'Possible Light Snow and Windy', owmIcon: '13d', stdIcon: 'chancesnow', luxpercent: 0.3 ],
+[ ccode: 'clear', altIcon: '32.png', ctext: 'Clear', owmIcon: '01d', stdIcon: 'clear', luxpercent: 1 ],
+[ ccode: 'cloudy', altIcon: '26.png', ctext: 'Overcast', owmIcon: '04d', stdIcon: 'cloudy', luxpercent: 0.6 ],
+[ ccode: 'drizzle', altIcon: '9.png', ctext: 'Drizzle', owmIcon: '09d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'flurries', altIcon: '13.png', ctext: 'Snow Flurries', owmIcon: '13d', stdIcon: 'flurries', luxpercent: 0.4 ],
+[ ccode: 'fog', altIcon: '19.png', ctext: 'Fog', owmIcon: '50d', stdIcon: 'fog', luxpercent: 0.2 ],
+[ ccode: 'heavyrain', altIcon: '12.png', ctext: 'Heavy Rain', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'heavyrainbreezy', altIcon: '1.png', ctext: 'Heavy Rain and Breezy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'heavyrainwindy', altIcon: '1.png', ctext: 'Heavy Rain and Windy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'lightrain', altIcon: '11.png', ctext: 'Light Rain', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'lightrainbreezy', altIcon: '2.png', ctext: 'Light Rain and Breezy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'lightrainwindy', altIcon: '2.png', ctext: 'Light Rain and Windy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'lightsleet', altIcon: '8.png', ctext: 'Light Sleet', owmIcon: '13d', stdIcon: 'sleet', luxpercent: 0.5 ],
+[ ccode: 'lightsnow', altIcon: '14.png', ctext: 'Light Snow', owmIcon: '13d', stdIcon: 'snow', luxpercent: 0.3 ],
+[ ccode: 'mostlycloudy', altIcon: '28.png', ctext: 'Mostly Cloudy', owmIcon: '04d', stdIcon: 'mostlycloudy', luxpercent: 0.6 ],
+[ ccode: 'partlycloudy', altIcon: '30.png', ctext: 'Partly Cloudy', owmIcon: '03d', stdIcon: 'partlycloudy', luxpercent: 0.8 ],
+[ ccode: 'rain', altIcon: '12.png', ctext: 'Rain', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'rainbreezy', altIcon: '1.png', ctext: 'Rain and Breezy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'rainwindy', altIcon: '1.png', ctext: 'Rain and Windy', owmIcon: '10d', stdIcon: 'rain', luxpercent: 0.5 ],
+[ ccode: 'sleet', altIcon: '10.png', ctext: 'Sleet', owmIcon: '13d', stdIcon: 'sleet', luxpercent: 0.5 ],
+[ ccode: 'snow', altIcon: '15.png', ctext: 'Snow', owmIcon: '13d', stdIcon: 'snow', luxpercent: 0.3 ],
+[ ccode: 'sunny', altIcon: '36.png', ctext: 'Sunny', owmIcon: '01d', stdIcon: 'clear', luxpercent: 1 ],
+[ ccode: 'thunderstorm', altIcon: '0.png', ctext: 'Thunderstorm', owmIcon: '11d', stdIcon: 'tstorms', luxpercent: 0.3 ],
+[ ccode: 'wind', altIcon: '23.png', ctext: 'Windy', owmIcon: '50d', stdIcon: 'partlycloudy', luxpercent: 0.8 ],
+[ ccode: 'windfoggy', altIcon: '23.png', ctext: 'Windy and Foggy', owmIcon: '50d', stdIcon: 'fog', luxpercent: 0.2 ],
+[ ccode: 'windmostlycloudy', altIcon: '51.png', ctext: 'Windy and Mostly Cloudy', owmIcon: '50d', stdIcon: 'mostlycloudy', luxpercent: 0.6 ],
+[ ccode: 'windovercast', altIcon: '49.png', ctext: 'Windy and Overcast', owmIcon: '50d', stdIcon: 'mostlycloudy', luxpercent: 0.6 ],
+[ ccode: 'windpartlycloudy', altIcon: '53.png', ctext: 'Windy and Partly Cloudy', owmIcon: '50d', stdIcon: 'partlycloudy', luxpercent: 0.8 ],
+[ ccode: 'nt_breezy', altIcon: '23.png', ctext: 'Breezy', owmIcon: '50n', stdIcon: 'nt_partlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_breezyfoggy', altIcon: '48.png', ctext: 'Breezy and Foggy', owmIcon: '50n', stdIcon: 'nt_fog', luxpercent: 0 ],
+[ ccode: 'nt_breezymostlycloudy', altIcon: '50.png', ctext: 'Breezy and Mostly Cloudy', owmIcon: '04n', stdIcon: 'nt_mostlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_breezyovercast', altIcon: '49.png', ctext: 'Breezy and Overcast', owmIcon: '04n', stdIcon: 'nt_mostlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_breezypartlycloudy', altIcon: '52.png', ctext: 'Breezy and Partly Cloudy', owmIcon: '03n', stdIcon: 'nt_partlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_chancelightrain', altIcon: '45.png', ctext: 'Chance of Light Rain', owmIcon: '09n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_chancelightsnow', altIcon: '46.png', ctext: 'Possible Light Snow', owmIcon: '13n', stdIcon: 'nt_snow', luxpercent: 0 ],
+[ ccode: 'nt_chancelightsnowbreezy', altIcon: '55.png', ctext: 'Possible Light Snow and Breezy', owmIcon: '13n', stdIcon: 'nt_snow', luxpercent: 0 ],
+[ ccode: 'nt_chancerain', altIcon: '39.png', ctext: 'Chance of Rain', owmIcon: '09n', stdIcon: 'nt_chancerain', luxpercent: 0 ],
+[ ccode: 'nt_chancesleet', altIcon: '46.png', ctext: 'Chance of Sleet', owmIcon: '13n', stdIcon: 'nt_chancesleet', luxpercent: 0 ],
+[ ccode: 'nt_chancesnow', altIcon: '46.png', ctext: 'Chance of Snow', owmIcon: '13n', stdIcon: 'nt_chancesnow', luxpercent: 0 ],
+[ ccode: 'nt_chancetstorms', altIcon: '47.png', ctext: 'Chance of Thunderstorms', owmIcon: '11n', stdIcon: 'nt_chancetstorms', luxpercent: 0 ],
+[ ccode: 'nt_chancelightsnowwindy', altIcon: '55.png', ctext: 'Possible Light Snow and Windy', owmIcon: '13n', stdIcon: 'nt_chancesnow', luxpercent: 0 ],
+[ ccode: 'nt_clear', altIcon: '31.png', ctext: 'Clear', owmIcon: '01n', stdIcon: 'nt_clear', luxpercent: 0 ],
+[ ccode: 'nt_cloudy', altIcon: '26.png', ctext: 'Overcast', owmIcon: '04n', stdIcon: 'nt_cloudy', luxpercent: 0 ],
+[ ccode: 'nt_drizzle', altIcon: '9.png', ctext: 'Drizzle', owmIcon: '09n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_flurries', altIcon: '13.png', ctext: 'Flurries', owmIcon: '13n', stdIcon: 'nt_flurries', luxpercent: 0 ],
+[ ccode: 'nt_fog', altIcon: '22.png', ctext: 'Fog', owmIcon: '50n', stdIcon: 'nt_fog', luxpercent: 0 ],
+[ ccode: 'nt_heavyrain', altIcon: '12.png', ctext: 'Heavy Rain', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_heavyrainbreezy', altIcon: '1.png', ctext: 'Heavy Rain and Breezy', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_heavyrainwindy', altIcon: '1.png', ctext: 'Heavy Rain and Windy', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_lightrain', altIcon: '11.png', ctext: 'Light Rain', owmIcon: '09n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_lightrainbreezy', altIcon: '11.png', ctext: 'Light Rain and Breezy', owmIcon: '09n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_lightrainwindy', altIcon: '11.png', ctext: 'Light Rain and Windy', owmIcon: '09n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_lightsleet', altIcon: '46.png', ctext: 'Sleet', owmIcon: '13n', stdIcon: 'nt_sleet', luxpercent: 0 ],
+[ ccode: 'nt_lightsnow', altIcon: '14.png', ctext: 'Light Snow', owmIcon: '13n', stdIcon: 'nt_snow', luxpercent: 0 ],
+[ ccode: 'nt_mostlycloudy', altIcon: '27.png', ctext: 'Mostly Cloudy', owmIcon: '04n', stdIcon: 'nt_mostlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_partlycloudy', altIcon: '29.png', ctext: 'Partly Cloudy', owmIcon: '03n', stdIcon: 'nt_partlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_rain', altIcon: '11.png', ctext: 'Rain', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_rainbreezy', altIcon: '2.png', ctext: 'Rain and Breezy', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_rainwindy', altIcon: '2.png', ctext: 'Rain and Windy', owmIcon: '10n', stdIcon: 'nt_rain', luxpercent: 0 ],
+[ ccode: 'nt_sleet', altIcon: '46.png', ctext: 'Sleet', owmIcon: '13n', stdIcon: 'nt_sleet', luxpercent: 0 ],
+[ ccode: 'nt_snow', altIcon: '46.png', ctext: 'Snow', owmIcon: '13n', stdIcon: 'nt_snow', luxpercent: 0 ],
+[ ccode: 'nt_thunderstorm', altIcon: '0.png', ctext: 'Thunderstorm', owmIcon: '11n', stdIcon: 'nt_clear', luxpercent: 0 ],
+[ ccode: 'nt_wind', altIcon: '23.png', ctext: 'Windy', owmIcon: '50n', stdIcon: 'nt_tstorms', luxpercent: 0 ],
+[ ccode: 'nt_windfoggy', altIcon: '48.png', ctext: 'Windy and Foggy', owmIcon: '50n', stdIcon: 'nt_partlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_windmostlycloudy', altIcon: '50.png', ctext: 'Windy and Mostly Cloudy', owmIcon: '50n', stdIcon: 'nt_fog', luxpercent: 0 ],
+[ ccode: 'nt_windovercast', altIcon: '49.png', ctext: 'Windy and Overcast', owmIcon: '50n', stdIcon: 'nt_mostlycloudy', luxpercent: 0 ],
+[ ccode: 'nt_windpartlycloudy', altIcon: '52.png', ctext: 'Windy and Partly Cloudy', owmIcon: '50n', stdIcon: 'nt_mostlycloudy', luxpercent: 0 ],
 ]    
 
 @Field static attributesMap = [
@@ -1114,7 +1235,7 @@ def updateCheck()
 void updateCheckHandler(resp, data) {
 
 	state.InternalName = "DarkSky.net Weather Driver"
-    boolean descTextEnable = settings?.logset ?: false
+    boolean descTextEnable = settings?.logSet ?: false
 
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
 		def respUD = parseJson(resp.data)
@@ -1146,8 +1267,6 @@ void updateCheckHandler(resp, data) {
 				break
         }
 
-// 	    sendEvent(name: "verUpdate", value: state.UpdateInfo)
-//	    sendEvent(name: "verStatus", value: state.Status)
     } else {
         log.error "Something went wrong: CHECK THE JSON FILE AND IT'S URI"
     }
