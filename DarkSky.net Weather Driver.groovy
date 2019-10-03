@@ -42,10 +42,10 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 10/01/2019
+   Last Update 10/02/2019
   { Left room below to document version changes...}
  
-
+   V1.2.2   Bug fix for is_day/is_light                                                       - 10/02/2019
    V1.2.1   Added ability to show 'knots' for wind/gust speeds                                - 10/01/2019
    V1.2.0   Eliminated 'Std' Icons.  Reworked condition_code/condition_text.                  - 09/30/2019
    V1.1.9   myTile format tweaking                                                            - 09/29/2019
@@ -84,7 +84,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.2.1"  }
+public static String version()      {  return "1.2.2"  }
 import groovy.transform.Field
 
 metadata {
@@ -245,17 +245,17 @@ void doPollDS(Map ds) {
     updateDataValue("currDate", new Date().format("yyyy-MM-dd", TimeZone.getDefault()))
     updateDataValue("currTime", new Date().format("HH:mm", TimeZone.getDefault()))    
     if(getDataValue("riseTime") <= getDataValue("currTime") && getDataValue("setTime") >= getDataValue("currTime")) {
-        updateDataValue("is_day", "1")
+        updateDataValue("is_day", "true")
     } else {
-        updateDataValue("is_day", "0")
+        updateDataValue("is_day", "false")
     }
     if(getDataValue("currTime") < getDataValue("tw_begin") || getDataValue("currTime") > getDataValue("tw_end")) {
-        updateDataValue("is_light", "0")
+        updateDataValue("is_light", "false")
     } else {
-        updateDataValue("is_light", "1")
+        updateDataValue("is_light", "true")
     }
     if(getDataValue("is_light") != getDataValue("is_lightOld")) {
-        if(getDataValue("is_light")=="1") {
+        if(getDataValue("is_light")=="true") {
             log.info("DarkSky.net Weather Driver - INFO: Switching to Daytime schedule.")
         }else{
             log.info("DarkSky.net Weather Driver - INFO: Switching to Nighttime schedule.")
@@ -470,9 +470,9 @@ void updateLux(boolean pollAgain=true) {
 		String curTime = new Date().format("HH:mm", TimeZone.getDefault())
 		String newLight
 		if(curTime < getDataValue("tw_begin") || curTime > getDataValue("tw_end")) {
-			newLight =  "0"
+			newLight =  "false"
 		} else {
-			newLight =  "1"
+			newLight =  "true"
 		}
 		if(newLight != getDataValue("is_lightOld")) {
 			pollDS()
@@ -573,8 +573,7 @@ String getdsIconCode(String icon='unknown', String dcs='unknown') {
 		default:
 			icon = 'unknown'
 	}
-    boolean isNight = getDataValue("is_day")=="false"
-	if(isNight) icon = 'nt_' + icon
+    if(getDataValue("is_day")=="false") icon = 'nt_' + icon
     return icon
 }
 // >>>>>>>>>> End Icon and condition_code, condition_text processing <<<<<<<<<<
@@ -825,7 +824,7 @@ void initialize() {
 	}else{
 		dsseconds = ssseconds - 60 + 4
 	}
-	if(getDataValue("is_light")=="1") {
+	if(getDataValue("is_light")=="true") {
 		if(pollIntervalForecast == "Manual Poll Only"){
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
 		} else {
