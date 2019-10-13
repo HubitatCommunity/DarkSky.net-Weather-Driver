@@ -42,9 +42,9 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 10/02/2019
+   Last Update 10/13/2019
   { Left room below to document version changes...}
- 
+   V1.2.3   forecastIcon & weatherIcon fix.  Tuned Lux for 'fully nighttime'                  - 10/13/2019
    V1.2.2   Bug fix for is_day/is_light                                                       - 10/02/2019
    V1.2.1   Added ability to show 'knots' for wind/gust speeds                                - 10/01/2019
    V1.2.0   Eliminated 'Std' Icons.  Reworked condition_code/condition_text.                  - 09/30/2019
@@ -84,7 +84,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.2.2"  }
+public static String version()      {  return "1.2.3"  }
 import groovy.transform.Field
 
 metadata {
@@ -606,10 +606,10 @@ void PostPoll() {
 /*  'Required for Dashboards' Data Elements */    
     if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "city", value: getDataValue("city")) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "feelsLike", value: getDataValue("feelsLike").toBigDecimal(), unit: (isFahrenheit ? '°F' : '°C')) }
-    if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getDataValue("condition_code")) }
+    if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getstdImgName(getDataValue("condition_code"))) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "percentPrecip", value: getDataValue("percentPrecip")) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weather", value: getDataValue("condition_text")) }
-    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weatherIcon", value: getDataValue("condition_code")) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weatherIcon", value: getstdImgName(getDataValue("condition_code"))) }
     if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getowmImgName(getDataValue("condition_code"))) }
     if(dashSharpToolsPublish || windPublish) { sendEvent(name: "wind", value: getDataValue("wind"), unit: (isDistanceMetric ? (isDistanceKnots ? "knots" : 'KPH') : 'MPH')) }
     if(dashHubitatOWMPublish) { sendEvent(name: "windSpeed", value: getDataValue("wind").toBigDecimal(), unit: (isDistanceMetric ? (isDistanceKnots ? "knots" : 'KPH') : 'MPH')) }
@@ -925,6 +925,7 @@ def estimateLux(String condition_code, int cloud)     {
 		case { it < twilight_beginMillis}: 
 			bwn = "Fully Night Time" 
 			lux = 5l
+            aFCC = false
 			break
 		case { it < sunriseTimeMillis}:
 			bwn = "between twilight and sunrise" 
@@ -949,6 +950,7 @@ def estimateLux(String condition_code, int cloud)     {
 		case { it < twiStartNextMillis}:
 			bwn = "Fully Night Time" 
 			lux = 5l
+            aFCC = false        
 			break
 		case { it < sunriseNextMillis}:
 			bwn = "between twilight and sunrise" 
@@ -1008,6 +1010,7 @@ def estimateLux(String condition_code, int cloud)     {
             lux = 5
         }
     }
+    lux = Math.max(lux, 5)    
 	LOGDEBUG("condition: $cC | condition factor: $cCF | condition text: $cCT| lux: $lux")
 	return [lux, bwn]
 }
@@ -1059,6 +1062,11 @@ String getowmImgName(String wCode){
     LOGINFO("getImgName Input: wCode: " + wCode + " iconLocation: " + getDataValue("iconLocation"))
     LUitem = LUTable.find{ it.ccode == wCode }
     return (LUitem ? LUitem.owmIcon : '')   
+}
+String getstdImgName(String wCode){
+    LOGINFO("getImgName Input: wCode: " + wCode + " iconLocation: " + getDataValue("iconLocation"))
+    LUitem = LUTable.find{ it.ccode == wCode }
+    return (LUitem ? LUitem.stdIcon : '')   
 }
 String getcondText(String wCode){
     LOGINFO("getImgName Input: wCode: " + wCode)
