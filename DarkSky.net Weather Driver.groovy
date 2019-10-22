@@ -761,7 +761,8 @@ void PostPoll() {
         SummaryMessage(summaryType, Summary_last_poll_date, Summary_last_poll_time, Summary_forecastTemp, Summary_precip, Summary_vis)
     }
 //  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<    
-
+    String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:2em;display:inline;\"></a>'
+    String dsText = '<a href=\"https://darksky.net/poweredby/\">Powered by Dark Sky</a>'        
 //  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
     if(threedayTilePublish) {
         String my3day = '<style type=\"text/css\">'
@@ -806,6 +807,15 @@ void PostPoll() {
         my3day += '<td>' + getDataValue('PoP2') + '%</td>'
         my3day += '</tr>'
         my3day += '</table>'
+        if((my3day.length() + dsIcon.length() + 10) < 1025) {
+            my3day+= '<br>' + dsIcon + '</span>'
+        }else{
+            if((my3day.length() + dsText.length() + 10) < 1025) {
+                my3day+= '<br>' + dsText + '</span>'
+            }else{
+                mytmy3dayext+= '<br>Powered by Dark Sky</span>'
+            }
+        }
         sendEvent(name: "threedayfcstTile", value: my3day.take(1024))
     }
 //  >>>>>>>>>> End Built 3dayfcstTile <<<<<<<<<<
@@ -818,8 +828,6 @@ void PostPoll() {
         boolean noAlert = (!getDataValue("possAlert") || getDataValue("possAlert")=="" || getDataValue("possAlert")=="false")
         String alertStyleOpen = (noAlert ? '' :  '<span style=\"font-style:italic;\">')
         String alertStyleClose = (noAlert ? '<br>' : '</span><br>')
-        String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:2em;display:inline;\"></a>'
-        String dsText = '<a href=\"https://darksky.net/poweredby/\">Powered by Dark Sky</a>'        
         BigDecimal wgust
         if(getDataValue("wind_gust").toBigDecimal() < 1.0 ) {
             wgust = 0.0g
