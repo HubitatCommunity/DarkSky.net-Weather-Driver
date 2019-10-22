@@ -42,12 +42,12 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 10/14/2019
+   Last Update 10/22/2019
   { Left room below to document version changes...}
 
 
 
-
+   V1.2.5   Added three day forecast tile                                                     - 10/22/2019
    V1.2.4   added meters per second ('m/s') for wind and hectopascals for pressure            - 10/14/2019
    V1.2.3   forecastIcon & weatherIcon fix.  Tuned Lux for 'fully nighttime'                  - 10/13/2019
    V1.2.2   Bug fix for is_day/is_light                                                       - 10/02/2019
@@ -89,7 +89,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.2.4"  }
+public static String version()      {  return "1.2.5"  }
 import groovy.transform.Field
 
 metadata {
@@ -123,6 +123,9 @@ metadata {
         attribute "windSpeed", "number"         //Hubitat  OpenWeather
 
 //      The attributes below are sub-groups of optional attributes.  They need to be listed here to be available
+//threedayTile
+        attribute "threedayfcstTile", "string"
+
 //DSAttribution
         attribute "dsIcondarktext", "string"
         attribute "dsIconlighttext", "string"
@@ -482,7 +485,7 @@ void doPollDS(Map ds) {
         updateDataValue("alert", ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0])
         updateDataValue("possAlert", "true")
     }
-    updateDataValue("vis", (isDistanceMetric ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
+    updateDataValue("vis", (dMetric!="MPH" ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
     updateDataValue("percentPrecip", !ds.daily.data[0].precipProbability ? "1" : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger().toString())
 
     String c_code = getdsIconCode(ds?.currently?.icon, ds?.currently?.summary)
@@ -493,8 +496,36 @@ void doPollDS(Map ds) {
     updateDataValue("forecast_code", f_code)
     updateDataValue("forecast_text", getcondText(f_code))
 
-    updateDataValue("forecastHigh", (isFahrenheit ? (Math.round(ds.daily.data[0].temperatureHigh.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureHigh.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
-    updateDataValue("forecastLow", (isFahrenheit ? (Math.round(ds.daily.data[0].temperatureLow.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureLow.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
+    if(threedayTilePublish) {
+        String f_code1 = getdsIconCode(ds?.daily?.data[1]?.icon, ds?.daily?.data[1]?.summary)
+        updateDataValue("forecast_code1", f_code1)
+        updateDataValue("forecast_text1", getcondText(f_code1))
+
+        String f_code2 = getdsIconCode(ds?.daily?.data[2]?.icon, ds?.daily?.data[2]?.summary)
+        updateDataValue("forecast_code2", f_code2)
+        updateDataValue("forecast_text2", getcondText(f_code2))
+
+        updateDataValue("day1", new Date(ds.daily.data[1].time * 1000L).format("EEEE"))
+        updateDataValue("day2", new Date(ds.daily.data[2].time * 1000L).format("EEEE"))
+    
+        updateDataValue("forecastHigh1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureHigh.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[1].temperatureHigh.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
+        updateDataValue("forecastHigh2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureHigh.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[2].temperatureHigh.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())    
+
+        updateDataValue("forecastLow1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureLow.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[1].temperatureLow.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
+        updateDataValue("forecastLow2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureLow.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[2].temperatureLow.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
+        
+        updateDataValue("imgName0", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code')) + '>')
+        updateDataValue("imgName1", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code1')) + '>')
+        updateDataValue("imgName2", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code2')) + '>')
+        
+        updateDataValue("PoP", (!ds.daily.data[0].precipProbability ? 0 : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger()).toString())
+        updateDataValue("PoP1", (!ds.daily.data[1].precipProbability ? 0 : (ds.daily.data[1].precipProbability.toBigDecimal() * 100).toInteger()).toString())
+        updateDataValue("PoP2", (!ds.daily.data[2].precipProbability ? 0 : (ds.daily.data[2].precipProbability.toBigDecimal() * 100).toInteger()).toString())
+    }
+        
+    updateDataValue("forecastHigh", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureHigh.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureHigh.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())    
+    updateDataValue("forecastLow", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureLow.toBigDecimal() * 10) / 10) : (Math.round((ds.daily.data[0].temperatureLow.toBigDecimal() - 32) / 1.8 * 10) / 10)).toString())
+    
     if(precipExtendedPublish){
         updateDataValue("rainTomorrow", (ds.daily.data[1].precipProbability.toBigDecimal() * 100).toInteger().toString())
         updateDataValue("rainDayAfterTomorrow", (ds.daily.data[2].precipProbability.toBigDecimal() * 100).toInteger().toString())
@@ -730,7 +761,55 @@ void PostPoll() {
         SummaryMessage(summaryType, Summary_last_poll_date, Summary_last_poll_time, Summary_forecastTemp, Summary_precip, Summary_vis)
     }
 //  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<    
-    
+
+//  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
+    if(threedayTilePublish) {
+        String my3day = '<style type=\"text/css\">'
+        my3day += '.centerImage'
+        my3day += '{ text-align:center; display:inline; }'
+        my3day += '</style>'
+        my3day += '<table align=\"center\" style=\"width:100%\">'
+        my3day += '<tr>'
+        my3day += '<td></td>'
+        my3day += '<td>Today</td>'
+	    my3day += '<td>' + getDataValue('day1') + '</td>'
+	    my3day += '<td>' + getDataValue('day2') + '</td>'
+        my3day += '</tr>'
+        my3day += '<tr>'
+        my3day += '<td></td>'
+        my3day += '<td>' + getDataValue('imgName0') + '</td>'
+	    my3day += '<td>' + getDataValue('imgName1') + '</td>'
+	    my3day += '<td>' + getDataValue('imgName2') + '</td>'
+        my3day += '</tr>'
+        my3day += '<tr>'
+        my3day += '<td style=\"text-align:right;\">Now:</td>'
+        my3day += '<td>' + getDataValue('temperature') + tMetric + '</td>'
+        my3day += '<td></td>'
+	    my3day += '<td></td>'
+        my3day += '</tr>'
+        my3day += '<tr>'
+        my3day += '<td style=\"text-align:right;\">Low:</td>'
+        my3day += '<td>' + getDataValue('forecastLow') + tMetric + '</td>'
+        my3day += '<td>' + getDataValue('forecastLow1') + tMetric + '</td>'
+        my3day += '<td>' + getDataValue('forecastLow2') + tMetric + '</td>'
+        my3day += '</tr>'
+        my3day += '<tr>'
+        my3day += '<td style=\"text-align:right;\">High:</td>'
+        my3day += '<td>' + getDataValue('forecastHigh') + tMetric + '</td>'
+        my3day += '<td>' + getDataValue('forecastHigh1') + tMetric + '</td>'
+        my3day += '<td>' + getDataValue('forecastHigh2') + tMetric + '</td>'
+        my3day += '</tr>'
+        my3day += '<tr>'
+        my3day += '<td style=\"text-align:right;\">PoP:</td>'
+        my3day += '<td>' + getDataValue('PoP') + '%</td>'
+        my3day += '<td>' + getDataValue('PoP1') + '%</td>'
+        my3day += '<td>' + getDataValue('PoP2') + '%</td>'
+        my3day += '</tr>'
+        my3day += '</table>'
+        sendEvent(name: "threedayfcstTile", value: my3day.take(1024))
+    }
+//  >>>>>>>>>> End Built 3dayfcstTile <<<<<<<<<<
+       
 //  <<<<<<<<<< Begin Built mytext >>>>>>>>>> 
     if(myTilePublish){ // don't bother setting these values if it's not enabled
         boolean gitclose = (getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))
@@ -799,7 +878,7 @@ void PostPoll() {
                 mytext+= (removeicons < 6 ? '<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled : '') + getDataValue("wind_direction") + " "
                 mytext+= (getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + " " + dMetric)
                 mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + wgust.toString() + " " + dMetric) + '<br>'
-                mytext+= (removeicons < 5 ? '<img src=' + getDataValue("iconLocation") + 'wb.png' + iconCloseStyled : 'Bar: ') + (isPressureMetric ? String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) : String.format("%2.2f", getDataValue("pressure").toBigDecimal())) + " " + pMetric + '  '
+                mytext+= (removeicons < 5 ? '<img src=' + getDataValue("iconLocation") + 'wb.png' + iconCloseStyled : 'Bar: ') + (pMetric!="inHg" ? String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) : String.format("%2.2f", getDataValue("pressure").toBigDecimal())) + " " + pMetric + '  '
                 mytext+= (removeicons < 4 ? '<img src=' + getDataValue("iconLocation") + 'wh.png' + iconCloseStyled : ' | Hum: ') + getDataValue("humidity") + '%  ' 
                 mytext+= (removeicons < 3 ? '<img src=' + getDataValue("iconLocation") + 'wu.png' + iconCloseStyled : ' | Precip%: ') + getDataValue("percentPrecip") + '%<br>'
                 mytext+= (removeicons < 2 ? '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + getDataValue("localSunrise") + '  '
@@ -813,7 +892,7 @@ void PostPoll() {
                 mytext+= getDataValue("wind_direction") + " "
                 mytext+= getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + getDataValue("wind") + " " + dMetric
                 mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + wgust.toString() + " " + dMetric) + '<br>'
-                mytext+= 'Bar: ' + (isPressureMetric ? String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) : String.format("%2.2f", getDataValue("pressure").toBigDecimal())) + " " + pMetric
+                mytext+= 'Bar: ' + (pMetric!="inHg" ? String.format("%,4.1f", getDataValue("pressure").toBigDecimal()) : String.format("%2.2f", getDataValue("pressure").toBigDecimal())) + " " + pMetric
                 mytext+= ' | Hum: ' + getDataValue("humidity") + '%  ' + ' | Precip%: ' + getDataValue("percentPrecip") + '%<br>'
                 mytext+= 'Sunrise: ' + getDataValue("localSunrise") + ' | Sunset:' + getDataValue("localSunset") + ' |  Updated:' + Summary_last_poll_time
                 if(mytext.length() > 1024) {
@@ -867,10 +946,6 @@ void initialize() {
     updateDataValue("iconLocation", iconLocation)
     state.DarkSky = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'dsD.png style=\"height:2em\";></a>'
     setDateTimeFormats(datetimeFormat)
-    boolean isDistanceMetric
-    boolean isPressureMetric
-    boolean isRainMetric
-    boolean isFahrenheit
     String dMetric
     String pMetric
     String rMetric
@@ -964,40 +1039,29 @@ public void setDateTimeFormats(String formatselector){
 
 public void setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFormat){
     if(distFormat == "Miles (mph)") {
-        isDistanceMetric = false
         dMetric = "MPH"
     } else if(distFormat == "knots") {
-        isDistanceMetric = true
         dMetric = "knots"
     } else if(distFormat == "Kilometers (kph)") {
-        isDistanceMetric = true
         dMetric = "KPH"
     } else {
-        isDistanceMetric = true
         dMetric = "m/s"
     }
     if(pressFormat == "Millibar") {
-        isPressureMetric = true
         pMetric = "MBAR"
     } else if(pressFormat == "Inches") {
-        isPressureMetric = true
         pMetric = "inHg"
     } else {
-        isPressureMetric = true
         pMetric = "hPa"
     }
     if(precipFormat == "Millimeters") {
-        isRainMetric = true
         rMetric = "mm"
     } else {
-        isRainMetric = false
         rMetric = "inches"
     }
     if(temptFormat == "Fahrenheit (°F)") {
-        isFahrenheit = true
         tMetric = "°F"
     } else {
-        isFahrenheit = false
         tMetric = "°C"
     }        
     return
@@ -1296,6 +1360,7 @@ void sendEventPublish(evt)	{
 ]    
 
 @Field static attributesMap = [
+    "threedayTile":             [title: "Three Day Forecast Tile", descr: "Display Three Day Forecast Tile?", typeof: false, default: "false"],
 	"alert":				    [title: "Weather Alert", descr: "Display any weather alert?", typeof: "string", default: "false"],
     "betwixt":				    [title: "Slice of Day", descr: "Display the 'slice-of-day'?", typeof: "string", default: "false"],
 	"cloud":			    	[title: "Cloud", descr: "Display cloud coverage %?", typeof: "number", default: "false"],
