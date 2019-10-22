@@ -808,12 +808,12 @@ void PostPoll() {
         my3day += '</tr>'
         my3day += '</table>'
         if((my3day.length() + dsIcon.length() + 10) < 1025) {
-            my3day+= '<br>' + dsIcon + '</span>'
+            my3day += dsIcon + '</span>'
         }else{
             if((my3day.length() + dsText.length() + 10) < 1025) {
-                my3day+= '<br>' + dsText + '</span>'
+                my3day += dsText + '</span>'
             }else{
-                mytmy3dayext+= '<br>Powered by Dark Sky</span>'
+                my3day += 'Powered by Dark Sky</span>'
             }
         }
         sendEvent(name: "threedayfcstTile", value: my3day.take(1024))
