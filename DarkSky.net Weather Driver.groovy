@@ -504,7 +504,7 @@ void doPollDS(Map ds) {
         String f_code2 = getdsIconCode(ds?.daily?.data[2]?.icon, ds?.daily?.data[2]?.summary)
         updateDataValue("forecast_code2", f_code2)
         updateDataValue("forecast_text2", getcondText(f_code2))
-
+        
         updateDataValue("day1", new Date(ds.daily.data[1].time * 1000L).format("EEEE"))
         updateDataValue("day2", new Date(ds.daily.data[2].time * 1000L).format("EEEE"))
     
@@ -785,8 +785,8 @@ void PostPoll() {
         my3day += '<tr>'
         my3day += '<td style=\"text-align:right;\">Now:</td>'
         my3day += '<td>' + getDataValue('temperature') + tMetric + '</td>'
-        my3day += '<td></td>'
-	    my3day += '<td></td>'
+        my3day += '<td>' + getDataValue('forecast_text1') + '</td>'
+	    my3day += '<td>' + getDataValue('forecast_text2') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
         my3day += '<td style=\"text-align:right;\">Low:</td>'
