@@ -42,9 +42,14 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 10/23/2019
+   Last Update 11/11/2019
   { Left room below to document version changes...}
 
+
+
+
+
+   V1.2.8   Exposed 'feelsLike' so it gets updated                                            - 11/11/2019
    V1.2.7   Force three day forcast icons to be 'daytime' (instead of 'nighttime')            - 10/23/2019
    V1.2.6   Changed 'pressure' to a number from a string, added 'pressured' as a string.      - 10/22/2019
    V1.2.5   Added three day forecast tile                                                     - 10/22/2019
@@ -89,7 +94,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.2.7"  }
+public static String version()      {  return "1.2.8"  }
 import groovy.transform.Field
 
 metadata {
@@ -702,10 +707,10 @@ void PostPoll() {
 	sendEvent(name: "pressured", value: (pMetric == "inHg" ? String.format("%2.2f", getDataValue("pressure").toBigDecimal()) : String.format("%,4.1f", getDataValue("pressure").toBigDecimal())), unit: pMetric)
 	sendEvent(name: "temperature", value: String.format("%3.1f", getDataValue("temperature").toBigDecimal()), unit: tMetric)
     sendEvent(name: "ultravioletIndex", value: getDataValue("ultravioletIndex").toBigDecimal(), unit: 'uvi')
-
+    sendEvent(name: "feelsLike", value: getDataValue("feelsLike").toBigDecimal(), unit: tMetric)
+    
 /*  'Required for Dashboards' Data Elements */    
     if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "city", value: getDataValue("city")) }
-    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "feelsLike", value: getDataValue("feelsLike").toBigDecimal(), unit: tMetric) }
     if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getstdImgName(getDataValue("condition_code"))) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "percentPrecip", value: getDataValue("percentPrecip")) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weather", value: getDataValue("condition_text")) }
