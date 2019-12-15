@@ -49,6 +49,7 @@
 
 
 
+   V1.2.9   Fixed pressured definition to avoid excess events                                 - 12/15/2019
    V1.2.8   Exposed 'feelsLike' so it gets updated                                            - 11/11/2019
    V1.2.7   Force three day forcast icons to be 'daytime' (instead of 'nighttime')            - 10/23/2019
    V1.2.6   Changed 'pressure' to a number from a string, added 'pressured' as a string.      - 10/22/2019
@@ -94,7 +95,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.2.8"  }
+public static String version()      {  return "1.2.9"  }
 import groovy.transform.Field
 
 metadata {
@@ -120,6 +121,7 @@ metadata {
         attribute "localSunrise", "string"      //SharpTool.io  SmartTiles
         attribute "localSunset", "string"       //SharpTool.io  SmartTiles
         attribute "percentPrecip", "number"     //SharpTool.io  SmartTiles
+        attribute "pressured", "string"        // UNSURE SharpTool.io  SmartTiles
         attribute "weather", "string"           //SharpTool.io  SmartTiles
         attribute "weatherIcon", "string"       //SharpTool.io  SmartTiles
         attribute "weatherIcons", "string"      //Hubitat  openWeather
