@@ -42,13 +42,13 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 11/11/2019
+   Last Update 12/15/2019
   { Left room below to document version changes...}
 
 
 
 
-
+   V1.2.9   Fixed pressured definition to avoid excess events                                 - 12/15/2019
    V1.2.8   Exposed 'feelsLike' so it gets updated                                            - 11/11/2019
    V1.2.7   Force three day forcast icons to be 'daytime' (instead of 'nighttime')            - 10/23/2019
    V1.2.6   Changed 'pressure' to a number from a string, added 'pressured' as a string.      - 10/22/2019
@@ -87,7 +87,7 @@ The way the 'optional' attributes work:
    in dashboards.
  - Once an attribute has been selected it too will show under 'Current States' and be available in dashboards.
    <*** HOWEVER ***> If you ever de-select the optional attribute, it will still show under 'Current States' 
-   and will still show as an attribute for dashboards **BUT IT'S DATA WEILL NO LONGER BE REFRESHED WITH DATA
+   and will still show as an attribute for dashboards **BUT IT'S DATA WILL NO LONGER BE REFRESHED WITH DATA
    POLLS**.  This means what is shown on the 'Current States' and dashboard tiles for de-selected attributes
    may not be current valid data.
  - To my knowledge, the only way to remove the de-selected attribute from 'Current States' and not show it as
@@ -120,6 +120,7 @@ metadata {
         attribute "localSunrise", "string"      //SharpTool.io  SmartTiles
         attribute "localSunset", "string"       //SharpTool.io  SmartTiles
         attribute "percentPrecip", "number"     //SharpTool.io  SmartTiles
+        attribute "pressured", "string"         //UNSURE SharpTool.io  SmartTiles
         attribute "weather", "string"           //SharpTool.io  SmartTiles
         attribute "weatherIcon", "string"       //SharpTool.io  SmartTiles
         attribute "weatherIcons", "string"      //Hubitat  openWeather
