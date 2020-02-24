@@ -498,7 +498,7 @@ void doPollDS(Map ds) {
         updateDataValue("alert", ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0])
         updateDataValue("possAlert", "true")
     }
-    updateDataValue("vis", (dMetric!="MPH" ? ds.currently.visibility.toBigDecimal() * 1.60934 : ds.currently.visibility.toBigDecimal()).toString())
+    updateDataValue("vis", (dMetric!="MPH" ? Math.round(ds.currently.visibility.toBigDecimal() * 1.60934 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger() : Math.round(ds.currently.visibility.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()).toString())
     updateDataValue("percentPrecip", !ds.daily.data[0].precipProbability ? "1" : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger().toString())
 
     String c_code = getdsIconCode(ds?.currently?.icon, ds?.currently?.summary, getDataValue("is_day"))
@@ -708,7 +708,7 @@ void PostPoll() {
 	sendEvent(name: "humidity", value: getDataValue("humidity").toBigDecimal(), unit: '%')
     sendEvent(name: "illuminance", value: getDataValue("illuminance").toInteger(), unit: 'lx')
     sendEvent(name: "pressure", value: getDataValue("pressure").toBigDecimal(), unit: pMetric)
-	sendEvent(name: "pressured", value: String.format(ddisp_p, getDataValue("pressure").toBigDecimal()), unit: pMetric)
+	sendEvent(name: "pressured", value: String.format(ddisp_p, getDataValue("pressure").toBigDecimal()), unit: pMetric)    
 	sendEvent(name: "temperature", value: String.format(ddisp_twd, getDataValue("temperature").toBigDecimal()), unit: tMetric)
     sendEvent(name: "ultravioletIndex", value: getDataValue("ultravioletIndex").toBigDecimal(), unit: 'uvi')
     sendEvent(name: "feelsLike", value: String.format(ddisp_twd, getDataValue("feelsLike").toBigDecimal()), unit: tMetric)
@@ -757,7 +757,7 @@ void PostPoll() {
     sendEventPublish(name: "wind_degree", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")
     sendEventPublish(name: "wind_direction", value: getDataValue("wind_direction"))    
     sendEventPublish(name: "wind_cardinal", value: getDataValue("wind_cardinal"))
-    sendEventPublish(name: "wind_gust", value: Math.round(getDataValue("wind_gust").toBigDecimal() * getDataValue("mult_twd").toBigDecimal()) / getDataValue("mult_twd").toBigDecimal(), unit: dMetric)
+    sendEventPublish(name: "wind_gust", value: String.format(ddisp_twd, getDataValue("wind_gust").toBigDecimal()), unit: dMetric)
     sendEventPublish(name: "wind_string", value: getDataValue("wind_string"))
     if(nearestStormPublish) {
         sendEvent(name: "nearestStormBearing", value: getDataValue("nearestStormBearing"), unit: "DEGREE")
@@ -960,6 +960,8 @@ void initialize() {
     String datetimeFormat = (settings?.datetimeFormat ?: "1")
     String distanceFormat = (settings?.distanceFormat ?: "Miles (mph)")
     String pressureFormat = (settings?.pressureFormat ?: "Inches")
+    String TWDDecimals = (settings?.TWDDecimals ?: "0")
+    String PDecimals = (settings?.PDecimals ?: "0")
     String rainFormat = (settings?.rainFormat ?: "Inches")
     String tempFormat = (settings?.tempFormat ?: "Fahrenheit (°F)")
     boolean luxjitter = (settings?.luxjitter ?: false)
