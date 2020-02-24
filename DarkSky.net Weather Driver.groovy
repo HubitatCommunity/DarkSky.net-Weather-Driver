@@ -173,7 +173,7 @@ metadata {
             input "pollIntervalForecastnight", "enum", title: "External Source Poll Interval (nighttime)", required: true, defaultValue: "3 Hours", options: ["Manual Poll Only", "2 Minutes", "5 Minutes", "10 Minutes", "15 Minutes", "30 Minutes", "1 Hour", "3 Hours"]
             input "logSet", "bool", title: "Create extended Logging", required: true, defaultValue: false
 	    	input "tempFormat", "enum", required: true, defaultValue: "Fahrenheit (°F)", title: "Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)",  options: ["Fahrenheit (°F)", "Celsius (°C)"]
-            input "TWDDecimals", "enum", required: true, defaultValue: "0", title: "Display deicmals for Tempurature & Wind Speed", options: [0:"0", 1:"1", 2:"2", 3:"3", 4:"4"]
+            input "TWDDecimals", "enum", required: true, defaultValue: "0", title: "Display deicmals for Temperature & Wind Speed", options: [0:"0", 1:"1", 2:"2", 3:"3", 4:"4"]
             input "PDecimals", "enum", required: true, defaultValue: "0", title: "Display deicmals for Pressure", options: [0:"0", 1:"1", 2:"2", 3:"3", 4:"4"]            
             input "datetimeFormat", "enum", required: true, defaultValue: "1", title: "Display Unit - Date-Time Format",  options: [1:"m/d/yyyy 12 hour (am|pm)", 2:"m/d/yyyy 24 hour", 3:"mm/dd/yyyy 12 hour (am|pm)", 4:"mm/dd/yyyy 24 hour", 5:"d/m/yyyy 12 hour (am|pm)", 6:"d/m/yyyy 24 hour", 7:"dd/mm/yyyy 12 hour (am|pm)", 8:"dd/mm/yyyy 24 hour", 9:"yyyy/mm/dd 24 hour"]
             input "distanceFormat", "enum", required: true, defaultValue: "Miles (mph)", title: "Display Unit - Distance/Speed: Miles, Kilometers, knots or meters",  options: ["Miles (mph)", "Kilometers (kph)", "knots", "meters (m/s)"]
