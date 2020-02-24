@@ -757,7 +757,7 @@ void PostPoll() {
     sendEventPublish(name: "wind_degree", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")
     sendEventPublish(name: "wind_direction", value: getDataValue("wind_direction"))    
     sendEventPublish(name: "wind_cardinal", value: getDataValue("wind_cardinal"))
-    sendEventPublish(name: "wind_gust", value: String.format(ddisp_twd, getDataValue("wind_gust").toBigDecimal()), unit: dMetric)
+    sendEventPublish(name: "wind_gust", value: Math.round(getDataValue("wind_gust").toBigDecimal() * getDataValue("mult_twd").toBigDecimal()) / getDataValue("mult_twd").toBigDecimal(), unit: dMetric)
     sendEventPublish(name: "wind_string", value: getDataValue("wind_string"))
     if(nearestStormPublish) {
         sendEvent(name: "nearestStormBearing", value: getDataValue("nearestStormBearing"), unit: "DEGREE")
