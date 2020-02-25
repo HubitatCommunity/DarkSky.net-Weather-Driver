@@ -45,7 +45,7 @@
    Last Update 02/24/2020
   { Left room below to document version changes...}
 
-
+   V1.3.2   Further bug squashing                                                             - 02/24/2020 8:20 PM EDT
    V1.3.1   Corrected bug from 1.3.0 that made some attrubutes strings instead of numbers     - 02/24/2020
    V1.3.0   Added ability to select displayed decimals                                        - 02/23/2020
    V1.2.9   Fixed pressured definition to avoid excess events                                 - 12/15/2019
@@ -94,7 +94,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.3.1"  }
+public static String version()      {  return "1.3.2"  }
 import groovy.transform.Field
 
 metadata {
@@ -574,9 +574,6 @@ void doPollDS(Map ds) {
 // >>>>>>>>>> Begin Lux Processing <<<<<<<<<<    
 void updateLux(boolean pollAgain=true) {
 	LOGINFO("UpdateLux $pollAgain")
-    if(!pollAgain) {
-        pollAgain = false
-    }
 	if(pollAgain) {
 		String curTime = new Date().format("HH:mm", TimeZone.getDefault())
 		String newLight
@@ -694,6 +691,7 @@ void PostPoll() {
     def sunRiseSet = parseJson(getDataValue("sunRiseSet")).results
     setDateTimeFormats(datetimeFormat)
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)   
+    setDisplayDecimals(TWDDecimals, PDecimals)
 /*  SunriseSunset Data Eements */    
     if(localSunrisePublish){  // don't bother setting these values if it's not enabled
         sendEvent(name: "tw_begin", value: new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_begin).format(timeFormat, TimeZone.getDefault()))
@@ -942,7 +940,7 @@ void updated()   {
 	unschedule()
 	updateCheck()
 	initialize()
-//    RunEvery5Minutes(updateLux)
+    runEvery5Minutes(updateLux, [Data: [false]])
 	Random rand = new Random(now())
 	int ssseconds = rand.nextInt(60)
 	schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
