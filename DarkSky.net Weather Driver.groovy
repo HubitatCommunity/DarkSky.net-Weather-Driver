@@ -42,12 +42,12 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 02/26/2020
+   Last Update 02/27/2020
   { Left room below to document version changes...}
 
 
-
-
+   V1.3.4   Changed forecasts to use temperatureMax/Min instead of temperatureHigh/Low        - 02/27/2020
+                  from the Dark Sky API to match their website presentation.
    V1.3.3   Updated (reduced) logging and the behavior of 'refresh' (use 'pollData' instead   - 02/26/2020
                   to force a polling of data.
    V1.3.2   Further bug squashing                                                             - 02/24/2020 8:20 PM EDT
@@ -99,7 +99,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.3.3"  }
+public static String version()      {  return "1.3.4"  }
 import groovy.transform.Field
 
 metadata {
@@ -530,11 +530,11 @@ void doPollDS(Map ds) {
         updateDataValue("forecast_code2", f_code2)
         updateDataValue("forecast_text2", getcondText(f_code2))
     
-        updateDataValue("forecastHigh1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureHigh.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[1].temperatureHigh.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
-        updateDataValue("forecastHigh2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureHigh.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureHigh.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())    
+        updateDataValue("forecastHigh1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureMax.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[1].temperatureMax.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
+        updateDataValue("forecastHigh2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureMax.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureMax.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())    
 
-        updateDataValue("forecastLow1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureLow.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[1].temperatureLow.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
-        updateDataValue("forecastLow2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureLow.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureLow.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
+        updateDataValue("forecastLow1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[1].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
+        updateDataValue("forecastLow2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
         
         updateDataValue("imgName0", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code')) + '>')
         updateDataValue("imgName1", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code1')) + '>')
@@ -545,8 +545,8 @@ void doPollDS(Map ds) {
         updateDataValue("PoP2", (!ds.daily.data[2].precipProbability ? 0 : (ds.daily.data[2].precipProbability.toBigDecimal() * 100).toInteger()).toString())
     }
     
-    updateDataValue("forecastHigh", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureHigh.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[0].temperatureHigh.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())    
-    updateDataValue("forecastLow", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureLow.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[0].temperatureLow.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
+    updateDataValue("forecastHigh", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureMax.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[0].temperatureMax.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())    
+    updateDataValue("forecastLow", (tMetric=="°F" ? (Math.round(ds.daily.data[0].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[0].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
     
     if(precipExtendedPublish){
         updateDataValue("rainTomorrow", (ds.daily.data[1].precipProbability.toBigDecimal() * 100).toInteger().toString())
@@ -837,9 +837,9 @@ void PostPoll() {
         if(my3day.length() + 19 > 1024) {
             my3day = "Too much data to display.</br></br>Exceeds maximum tile length by " + (my3day.length() + 19 - 1024).toString() + " characters."
         }else if((my3day.length() + dsIcon.length() + 10) < 1025) {
-            my3day += dsIcon
-        }else if((my3day.length() + dsText.length() + 10) < 1025) {
-            my3day += dsText
+            my3day += dsIcon + ' Updated: ' + Summary_last_poll_time
+        }else if((my3day.length() + dsText.length() + 27) < 1025) {
+            my3day += dsText + ' Updated: ' + Summary_last_poll_time
         }else{
             my3day += 'Powered by Dark Sky'
         }
@@ -1270,8 +1270,8 @@ void SummaryMessage(boolean SType, String Slast_poll_date, String Slast_poll_tim
         wSum = "Weather summary for " + getDataValue("city") + " updated at ${Slast_poll_time} on ${Slast_poll_date}. "
         wSum+= getDataValue("condition_text")
         wSum+= (!SforecastTemp || SforecastTemp=="") ? ". " : "${SforecastTemp}"
-        wSum+= "Humidity is " + getDataValue("humidity") + "% and the temperature is " + String.format("%3.1f", getDataValue("temperature").toBigDecimal()) + tMetric + ". "
-        wSum+= "The temperature feels like it is " + String.format("%3.1f", getDataValue("feelsLike").toBigDecimal()) + tMetric + ". "
+        wSum+= "Humidity is " + getDataValue("humidity") + "% and the temperature is " + String.format(ddisp_twd, getDataValue("temperature").toBigDecimal()) + tMetric + ". "
+        wSum+= "The temperature feels like it is " + String.format(ddisp_twd, getDataValue("feelsLike").toBigDecimal()) + tMetric + ". "
         wSum+= "Wind: " + getDataValue("wind_string") + ", gusts: " + ((windgust < 1.00) ? "calm. " : "up to " + windgust.toString() + " " + dMetric + ". ")
         wSum+= Sprecip
         wSum+= Svis
@@ -1279,7 +1279,7 @@ void SummaryMessage(boolean SType, String Slast_poll_date, String Slast_poll_tim
     } else {
         wSum = getDataValue("condition_text") + " "
         wSum+= ((!SforecastTemp || SforecastTemp=="") ? ". " : "${SforecastTemp}")
-        wSum+= " Humidity: " + getDataValue("humidity") + "%. Temperature: " + String.format("%3.1f", getDataValue("temperature").toBigDecimal()) + tMetric + ". "
+        wSum+= " Humidity: " + getDataValue("humidity") + "%. Temperature: " + String.format(ddisp_twd, getDataValue("temperature").toBigDecimal()) + tMetric + ". "
         wSum+= getDataValue("wind_string") + ", gusts: " + ((windgust == 0.00) ? "calm. " : "up to " + windgust + dMetric + ".")
 	}
     wSum = wSum.take(1024)
