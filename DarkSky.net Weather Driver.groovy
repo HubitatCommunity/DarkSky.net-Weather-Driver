@@ -556,9 +556,9 @@ void doPollDS(Map ds) {
         updateDataValue("forecastLow1", (tMetric=="°F" ? (Math.round(ds.daily.data[1].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[1].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
         updateDataValue("forecastLow2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
         
-        updateDataValue("imgName0", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code')) + '>')
-        updateDataValue("imgName1", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code1')) + '>')
-        updateDataValue("imgName2", '<img class=\"centerImage\" style=\"height:50%;\" src=' + getImgName(getDataValue('forecast_code2')) + '>')
+        updateDataValue("imgName0", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code')) + '>')
+        updateDataValue("imgName1", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code1')) + '>')
+        updateDataValue("imgName2", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code2')) + '>')
         
         updateDataValue("PoP", (!ds.daily.data[0].precipProbability ? 0 : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger()).toString())
         updateDataValue("PoP1", (!ds.daily.data[1].precipProbability ? 0 : (ds.daily.data[1].precipProbability.toBigDecimal() * 100).toInteger()).toString())
@@ -813,7 +813,7 @@ void PostPoll() {
     if(threedayTilePublish) {
         String my3day = '<style type=\"text/css\">'
         my3day += '.centerImage'
-        my3day += '{text-align:center;display:inline;}'
+        my3day += '{text-align:center;display:inline;height:50%;}'
         my3day += '</style>'
         my3day += '<table align=\"center\" style=\"width:100%\">'
         my3day += '<tr>'
