@@ -1,7 +1,7 @@
 /*
    DarkSky.net Weather Driver
    Import URL: https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy
-   Copyright 2019 @Matthew (Scottma61)
+   Copyright 2020 @Matthew (Scottma61)
  
    Many people contributed to the creation of this driver.  Significant contributors include:
    - @Cobra who adapted it from @mattw01's work and I thank them for that!
@@ -42,9 +42,9 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 02/28/2020
+   Last Update 03/01/2020
   { Left room below to document version changes...}
-
+   V1.3.6   Changed links for they Open in new tabs/windows.                                  - 03/01/2020
    V1.3.5   Enhancements to myTile and threedayfcstTile, NEW alterTile                        - 02/28/2020
    V1.3.4   Changed forecasts to use temperatureMax/Min instead of temperatureHigh/Low        - 02/27/2020
                   from the Dark Sky API to match their website presentation.
@@ -99,7 +99,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.3.5"  }
+public static String version()      {  return "1.3.6"  }
 import groovy.transform.Field
 
 metadata {
@@ -514,27 +514,27 @@ void doPollDS(Map ds) {
 
     if (!ds.alerts){
         updateDataValue("alert", 'No current weather alerts for this area.')
-        updateDataValue("alertTileLink", '<a style="color:green;" href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '">No current weather alerts for this area.</a>')
+        updateDataValue("alertTileLink", '<a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>No current weather alerts for this area.</a>')
         updateDataValue("alertLink", '<a>' + getDataValue("condition_text") + '</a>')        
         updateDataValue("alertLink2", '<a>' + getDataValue("condition_text") + '</a>')
         updateDataValue("alertLink3", '<a>' + getDataValue("condition_text") + '</a>')
         updateDataValue("possAlert", "false")
     } else {  
-        updateDataValue("alertTileLink", '<a style="font-style:italic;color:red;" href="'+ds.alerts[0].uri+'">'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
-        updateDataValue("alertLink", '<a style="font-style:italic;color:red;" href="'+ds.alerts[0].uri+'">'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')        
-        updateDataValue("alertLink2", '<a style="font-style:italic;color:red;" href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '">'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
-        updateDataValue("alertLink3", '<a style="font-style:italic;color:red;">'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
+        updateDataValue("alertTileLink", '<a style="font-style:italic;color:red;" href="'+ds.alerts[0].uri+'" target=\'_blank\'>'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
+        updateDataValue("alertLink", '<a style="font-style:italic;color:red;" href="'+ds.alerts[0].uri+'" target=\'_blank\'>'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')        
+        updateDataValue("alertLink2", '<a style="font-style:italic;color:red;" href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
+        updateDataValue("alertLink3", '<a style="font-style:italic;color:red;" target=\'_blank\'>'+ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0]+'</a>')
         updateDataValue("alert", ds.alerts.title.toString().replaceAll("[{}\\[\\]]", "").split(/,/)[0])
         updateDataValue("possAlert", "true")
-/* code to test weather alerts
+/* code to test weather alerts 
         updateDataValue("alertTileLink", '<a style="font-style:italic;color:red;" href="'+"https://alerts.weather.gov/cap/wwacapget.php?x=NJ125F3B5DE240.WindAdvisory.125F3B5E5130NJ.PHINPWPHI.4c81e473f52888dec2cb0723d0145f0b"+'">'+"Wind Advisory"+'</a>')
         updateDataValue("alertLink", '<a style="font-style:italic;color:red;" href="'+"https://alerts.weather.gov/cap/wwacapget.php?x=NJ125F3B5DE240.WindAdvisory.125F3B5E5130NJ.PHINPWPHI.4c81e473f52888dec2cb0723d0145f0b"+'">'+"Wind Advisory"+'</a>')
         updateDataValue("alertLink2", '<a style="font-style:italic;color:red;" href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890">'+'Wind Advisory'+'</a>')
         updateDataValue("alertLink3", '<a style="font-style:italic;color:red;">'+'Wind Advisory'+'</a>')
         updateDataValue("alert", "Wind Advisory")
         updateDataValue("possAlert", "true")
-
-*/    }
+*/
+    }
 
     if(threedayTilePublish) {
         updateDataValue("day1", new Date(ds.daily.data[1].time * 1000L).format("EEEE"))
@@ -557,7 +557,7 @@ void doPollDS(Map ds) {
         updateDataValue("forecastLow2", (tMetric=="°F" ? (Math.round(ds.daily.data[2].temperatureMin.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((ds.daily.data[2].temperatureMin.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
         
         updateDataValue("imgName0", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code')) + '>')
-        updateDataValue("imgName1", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code1')) + '>')
+        updateDataValue("imgName1", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code1')) + '>') // style=\"height:50%;\"
         updateDataValue("imgName2", '<img class=\"centerImage\" src=' + getImgName(getDataValue('forecast_code2')) + '>')
         
         updateDataValue("PoP", (!ds.daily.data[0].precipProbability ? 0 : (ds.daily.data[0].precipProbability.toBigDecimal() * 100).toInteger()).toString())
@@ -762,8 +762,8 @@ void PostPoll() {
     sendEventPublish(name: "condition_text", value: getDataValue("condition_text"))
     sendEventPublish(name: "dewpoint", value: getDataValue("dewpoint").toBigDecimal(), unit: tMetric)
     if(dsAttributionPublish){
-        sendEvent(name: "dsIconlighttext", value: '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'dsL.png' + ' style=\"height:2em\";></a>')
-        sendEvent(name: "dsIcondarktext", value: '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'dsD.png' + ' style=\"height:2em\";></a>')
+        sendEvent(name: "dsIconlighttext", value: '<a href=\"https://darksky.net/poweredby/\" target=\'_blank\'><img src=' + getDataValue("iconLocation") + 'dsL.png' + ' style=\"height:2em\";></a>')
+        sendEvent(name: "dsIcondarktext", value: '<a href=\"https://darksky.net/poweredby/\" target=\'_blank\'><img src=' + getDataValue("iconLocation") + 'dsD.png' + ' style=\"height:2em\";></a>')
     }
     sendEventPublish(name: "forecast_code", value: getDataValue("forecast_code"))
     sendEventPublish(name: "forecast_text", value: getDataValue("forecast_text"))
@@ -807,18 +807,18 @@ void PostPoll() {
         SummaryMessage(summaryType, Summary_last_poll_date, Summary_last_poll_time, Summary_forecastTemp, Summary_precip, Summary_vis)
     }
 //  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<    
-    String dsIcon = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:2em;display:inline;\"></a>'
-    String dsText = '<a href=\"https://darksky.net/poweredby/\">Powered by Dark Sky</a>'        
+    String dsIcon = '<a href="https://darksky.net/poweredby/" target="_blank"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style="height:2em;"></a>' // style=\"height:2em;external;display:inline;\"
+    String dsText = '<a href="https://darksky.net/poweredby/" target="_blank">Powered by Dark Sky</a>'        
 //  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
     if(threedayTilePublish) {
         String my3day = '<style type=\"text/css\">'
         my3day += '.centerImage'
         my3day += '{text-align:center;display:inline;height:50%;}'
         my3day += '</style>'
-        my3day += '<table align=\"center\" style=\"width:100%\">'
+        my3day += '<table align="center" style="width:100%">'
         my3day += '<tr>'
         my3day += '<td></td>'
-        my3day += '<td><a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '">Today</a></td>'
+        my3day += '<td><a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude)  + '" target="_blank">Today</a></td>'
 	    my3day += '<td>' + getDataValue('day1') + '</td>'
 	    my3day += '<td>' + getDataValue('day2') + '</td>'
         my3day += '</tr>'
@@ -829,36 +829,36 @@ void PostPoll() {
 	    my3day += '<td>' + getDataValue('imgName2') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
-        my3day += '<td style=\"text-align:right\">Now:</td>'
+        my3day += '<td style="text-align:right">Now:</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + '</td>'
         my3day += '<td>' + getDataValue('forecast_text1') + '</td>'
 	    my3day += '<td>' + getDataValue('forecast_text2') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
-        my3day += '<td style=\"text-align:right\">Low:</td>'
+        my3day += '<td style="text-align:right">Low:</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow').toBigDecimal()) + tMetric + '</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow1').toBigDecimal()) + tMetric + '</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow2').toBigDecimal()) + tMetric + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
-        my3day += '<td style=\"text-align:right\">High:</td>'
+        my3day += '<td style="text-align:right">High:</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh').toBigDecimal()) + tMetric + '</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh1').toBigDecimal()) + tMetric + '</td>'
         my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh2').toBigDecimal()) + tMetric + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
-        my3day += '<td style=\"text-align:right\">PoP:</td>'
+        my3day += '<td style="text-align:right">PoP:</td>'
         my3day += '<td>' + getDataValue('PoP') + '%</td>'
         my3day += '<td>' + getDataValue('PoP1') + '%</td>'
         my3day += '<td>' + getDataValue('PoP2') + '%</td>'
         my3day += '</tr>'
         my3day += '</table>'
-        if(my3day.length() + 19 > 1024) {
-            my3day = "Too much data to display.</br></br>Exceeds maximum tile length by " + (my3day.length() + 19 - 1024).toString() + " characters."
-        }else if((my3day.length() + dsIcon.length() + 10) < 1025) {
-            my3day += dsIcon + ' Updated: ' + Summary_last_poll_time
-        }else if((my3day.length() + dsText.length() + 27) < 1025) {
-            my3day += dsText + ' Updated: ' + Summary_last_poll_time
+        if(my3day.length() + 11 > 1024) {
+            my3day = "Too much data to display.</br></br>Exceeds maximum tile length by " + 1024 - my3day.length() - 11 + " characters."
+        }else if((my3day.length() + dsIcon.length() + 11) < 1025) {
+            my3day += dsIcon + ' @ ' + Summary_last_poll_time
+        }else if((my3day.length() + dsText.length() + 11) < 1025) {
+            my3day += dsText + ' @ ' + Summary_last_poll_time
         }else{
             my3day += 'Powered by Dark Sky'
         }
@@ -868,9 +868,9 @@ void PostPoll() {
 
 //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>> 
     if(alertPublish){ // don't bother setting these values if it's not enabled
-        String alertTile = "Weather Alerts for " + '<a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '">' + getDataValue("city") + "</a><br>updated at ${Summary_last_poll_time} on ${Summary_last_poll_date}.<br><br>"
-        alertTile+= getDataValue("alertTileLink") + '<br><br>'
-        alertTile+= '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:1.5em;display:inline;\"></a>'       
+        String alertTile = "Weather Alerts for " + '<a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>' + getDataValue("city") + ', ' + getDataValue("state") + "</a><br>updated at ${Summary_last_poll_time} on ${Summary_last_poll_date}.<br>"
+        alertTile+= getDataValue("alertTileLink") + '<br>'
+        alertTile+= dsIcon //'<a href=\"https://darksky.net/poweredby/\" target=\'_blank\'><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:1.5em;display:inline;\"></a>'       
         updateDataValue("alertTile", alertTile)
         sendEvent(name: "alert", value: getDataValue("alert"))
         sendEvent(name: "alertTile", value: getDataValue("alertTile"))
@@ -891,7 +891,7 @@ void PostPoll() {
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
         }        
-        String mytextb = '<span style=\"display:inline;\"><a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '">' + getDataValue("city") + '</a><br>'        //height:2em;
+        String mytextb = '<span style=\"display:inline;\"><a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>' + getDataValue("city") + '</a><br>'        //height:2em;
         String mytextm1 = getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alertLink")) + alertStyleClose
         String mytextm2 = getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alertLink2")) + alertStyleClose
         String mytextm3 = getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alertLink3")) + alertStyleClose
@@ -1023,7 +1023,7 @@ void initialize() {
     boolean summaryType = (settings?.summaryType ?: false)
     String iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
-    state.DarkSky = '<a href=\"https://darksky.net/poweredby/\"><img src=' + getDataValue("iconLocation") + 'dsD.png style=\"height:2em\";></a>'
+    state.DarkSky = '<a href=\"https://darksky.net/poweredby/\" target=\'_blank\'><img src=' + getDataValue("iconLocation") + 'dsD.png style=\"height:2em\";></a>'
     setDateTimeFormats(datetimeFormat)
     String dMetric
     String pMetric
