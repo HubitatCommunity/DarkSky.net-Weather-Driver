@@ -908,11 +908,10 @@ void PostPoll() {
         if((mytext.length() + dsIcon.length() + 10) < 1025) {
             mytext+= '<br>' + dsIcon + '</span>'
         }else{
-            mytext = mytextb + mytextm2 + mytexte
-            if((mytext.length() + dsIcon.length() + 10) < 1025) {
-                mytext+= '<br>' + dsIcon + '</span>'
+            if((mytext.length() + dsText.length() + 10) < 1025) {
+                mytext+= '<br>' + dsText + '</span>'
             }else{
-                mytext = mytextb + mytextm3 + mytexte
+                mytext = mytextb + mytextm2 + mytexte
                 if((mytext.length() + dsIcon.length() + 10) < 1025) {
                     mytext+= '<br>' + dsIcon + '</span>'
                 }else if((mytext.length() + dsText.length() + 10) < 1025) {
@@ -921,8 +920,7 @@ void PostPoll() {
                     mytext+= '<br>Powered by Dark Sky</span>'
                 }
             }
-        }
-        if(mytext.length() > 1024) {
+        }       if(mytext.length() > 1024) {
             int iconfilepath = ('<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled).length()
             int excess = (mytext.length() - 1024)
             int removeicons = 0
