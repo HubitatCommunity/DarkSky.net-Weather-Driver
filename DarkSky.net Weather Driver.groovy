@@ -920,7 +920,8 @@ void PostPoll() {
                     mytext+= '<br>Powered by Dark Sky</span>'
                 }
             }
-        }       if(mytext.length() > 1024) {
+        }
+        if(mytext.length() > 1024) {
             int iconfilepath = ('<img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled).length()
             int excess = (mytext.length() - 1024)
             int removeicons = 0
