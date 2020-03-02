@@ -868,7 +868,7 @@ void PostPoll() {
 
 //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>> 
     if(alertPublish){ // don't bother setting these values if it's not enabled
-        String alertTile = "Weather Alerts for " + '<a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>' + getDataValue("city") + ', ' + getDataValue("state") + "</a><br>updated at ${Summary_last_poll_time} on ${Summary_last_poll_date}.<br>"
+        String alertTile = "Weather Alerts for " + '<a href="https://darksky.net/forecast/' + String.format("%3.4f",location.latitude) + "," + String.format("%3.4f",location.longitude) + '" target=\'_blank\'>' + getDataValue("city") + "</a><br>updated at ${Summary_last_poll_time} on ${Summary_last_poll_date}.<br>"
         alertTile+= getDataValue("alertTileLink") + '<br>'
         alertTile+= dsIcon //'<a href=\"https://darksky.net/poweredby/\" target=\'_blank\'><img src=' + getDataValue("iconLocation") + (dsIconbackgrounddark ? 'dsD.png' : 'dsL.png') + ' style=\"height:1.5em;display:inline;\"></a>'       
         updateDataValue("alertTile", alertTile)
