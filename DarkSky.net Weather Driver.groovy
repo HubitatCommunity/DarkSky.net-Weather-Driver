@@ -42,11 +42,11 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 03/22/2020
+   Last Update 03/26/2020
   { Left room below to document version changes...}
 
 
-
+   V1.3.9   More checks of coordinates to prevent/warn of null values                         - 03/26/2020
    V1.3.8   Added some debugging helpers and code to remove any spaces in location coordinates- 03/22/2020
    V1.3.7   Allow location override. Corrected forecastHigh/Low to 'number' from 'string'     - 03/20/2020
    V1.3.6   Changed links for they Open in new tabs/windows.                                  - 03/01/2020
@@ -104,7 +104,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "1.3.8"  }
+public static String version()      {  return "1.3.9"  }
 import groovy.transform.Field
 
 metadata {
@@ -1018,21 +1018,47 @@ void initialize() {
     String city = (settings?.city ?: "")
     updateDataValue("city", city)
     boolean altCoord = (settings?.altCoord ?: false)
+    String valtLat = location.latitude.toString().replace(" ", "")
+    String valtLon = location.longitude.toString().replace(" ", "")
+    String altLat = settings?.altLat ?: valtLat
+    String altLon = settings?.altLon ?: valtLon    
     if (altCoord) {
         if (altLat == null) {
-            device.updateSetting("altLat", [value:location.latitude.toString().replace(" ", ""),type:"text"])
+            device.updateSetting("altLat", [value:valtLat,type:"text"])
         }
         if (altLon == null) {
-            device.updateSetting("altLon", [value:location.longitude.toString().replace(" ", ""),type:"text"])        
+            device.updateSetting("altLon", [value:valtLon,type:"text"])        
         }
+        if (altLat == null || altLon == null) {
+            if ((valtLAt == null) || (ValtLat = "")) {
+                log.error "Weather-Display Driver - ERROR: The Override Coorinates feature is selected but Both Hub & the Override Latitude are null."
+            } else {
+                device.updateSetting("altLat", [value:valtLat,type:"text"])
+            }
+            if ((valtLon == null) || (valtLon = "")) {
+                log.error "Weather-Display Driver - ERROR: The Override Coorinates feature is selected but Both Hub & the Override Longitude are null."
+            } else {
+                device.updateSetting("altLon", [value:valtLon,type:"text"])        
+            }
+        }    
     } else {
         device.removeSetting("altLat")
         device.removeSetting("altLon")
-        device.updateSetting("altLat", [value:location.latitude.toString().replace(" ", ""),type:"text"])
-        device.updateSetting("altLon", [value:location.longitude.toString().replace(" ", ""),type:"text"])                
+        device.updateSetting("altLat", [value:valtLat,type:"text"])
+        device.updateSetting("altLon", [value:valtLon,type:"text"])
+        if (altLat == null || altLon == null) {
+            if ((valtLat == null) || (valtLat = "")) {
+                log.error "Weather-Display Driver - ERROR: The Hub's latitude is not set. Please set it, or use the Override Coorinates feature."
+            } else {
+                device.updateSetting("altLat", [value:valtLat,type:"text"])
+            }
+            if ((valtLon == null) || (valtLon = "")) {
+                log.error "Weather-Display Driver - ERROR: The Hub's longitude is not set. Please set it, or use the Override Coorinates feature."
+            } else {
+                device.updateSetting("altLon", [value:valtLon,type:"text"])        
+            }
+        }    
     }
-    String altLat = settings?.altLat ?: location.latitude.toString().replace(" ", "")
-    String altLon = settings?.altLon ?: location.longitude.toString().replace(" ", "")    
     String pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours")
     String pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours")
     boolean dsIconbackgrounddark = (settings?.dsIconbackgrounddark ?: true)    
