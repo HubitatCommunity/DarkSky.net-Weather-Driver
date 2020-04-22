@@ -1,5 +1,4 @@
-DarkSky.net Weather Driver
-Import URL: https://raw.githubusercontent.com/HubitatCommunity/DarkSky.net-Weather-Driver/master/DarkSky.net%20Weather%20Driver.groovy
+<h1><Strong>DarkSky.net Weather Driver</h1></Strong><br>
 Copyright 2020 @Matthew (Scottma61)
 
 <a href=https://github.com/HubitatCommunity/DarkSky.net-Weather-Driver/wiki/Welcome-to-the-DarkSky.net-Weather-Driver-wiki!>DarkSky.net Weather Driver Wiki</a>
