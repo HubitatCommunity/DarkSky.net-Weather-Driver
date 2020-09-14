@@ -1,4 +1,5 @@
-[DEPRECATED - NO LONGER SUPPORTED - Use the OpenWeatherMap version of this driver]
+[DEPRECATED - NO LONGER SUPPORTED - Use the OpenWeatherMap version of this driver
+https://github.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver]
 
 <h1><Strong>DarkSky.net Weather Driver</h1></Strong><br>
 Copyright 2020 @Matthew (Scottma61)
